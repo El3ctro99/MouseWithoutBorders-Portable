@@ -2,9 +2,9 @@
 
 The `main` branch contains a portable Windows build of Mouse Without Borders derived from the actively maintained PowerToys-era source. The `STANDALONE` build symbol remains an internal compatibility identifier; the user-facing product name is **Mouse Without Borders — Portable**.
 
-## Current stable release — 1.1.0
+## Current stable release — 1.1.1
 
-Version 1.1.0 promotes RC14's application code, transfer system, compact settings and installation fixes into `main`. See [release and upgrade notes](RELEASE_1.1.0.md), the [current file-transfer guide](FILE_TRANSFERS.md), and [DEVELOPMENT.md](DEVELOPMENT.md) for implementation rules. The entries below record the original extraction and subsequent RC history; current controls and behavior are described in those guides.
+Version 1.1.1 promotes RC3's smoother computer matrix and transfer-recovery hardening into `main`. See [release and upgrade notes](RELEASE_1.1.1.md), the [current file-transfer guide](FILE_TRANSFERS.md), and [DEVELOPMENT.md](DEVELOPMENT.md) for implementation rules. The entries below record the original extraction and subsequent RC history; current controls and behavior are described in those guides.
 
 ## Extraction milestones — historical
 

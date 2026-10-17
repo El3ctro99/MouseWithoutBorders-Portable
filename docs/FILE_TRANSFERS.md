@@ -1,4 +1,4 @@
-# File transfers — 1.1.1 candidate
+# File transfers — 1.1.1
 
 Use the same release on every PC. The controls below apply to **drag-and-drop**; clipboard file copy/paste retains its separate transport.
 

@@ -17,7 +17,7 @@
 
 ## A much better file-transfer experience
 
-**[Version 1.1.0 is now stable](https://github.com/aeae1/MouseWithoutBorders-Portable/releases/tag/mwb-v1.1.0).** The new drag-and-drop system goes well beyond the original file-copy feature.
+**[Version 1.1.1 is now stable](https://github.com/aeae1/MouseWithoutBorders-Portable/releases/tag/mwb-v1.1.1).** The new drag-and-drop system goes well beyond the original file-copy feature.
 
 - **Drag files and whole folders between PCs**, with clear file-type previews, directly into an open Explorer folder or your chosen receiving folder.
 - **See what's happening:** one transfer window with individual progress bars, overall speed and estimated time remaining.
@@ -25,7 +25,7 @@
 - **Recover interrupted transfers** using checked, saved progress.
 - **Keep existing files safe:** matching names get separate copies instead of overwriting your originals.
 
-[File-transfer guide](docs/FILE_TRANSFERS.md) · [What's new in 1.1.0](docs/RELEASE_1.1.0.md)
+[File-transfer guide](docs/FILE_TRANSFERS.md) · [What's new in 1.1.1](docs/RELEASE_1.1.1.md)
 
 ## What this project is
 
@@ -69,7 +69,7 @@ The tray contains Settings, File transfers, About, and Exit. Service-only settin
 3. Choose **Run portable here**, or **Install for me** and select an install folder. Installation offers a desktop shortcut and optional Start with Windows.
 4. Use the same release on every connected PC and configure the same shared key.
 
-Already using this fork? Finish or cancel active transfers, exit MWB, and replace the existing EXE while keeping the adjacent preferences and recovery files. For an installed copy, the new EXE's **Install for me** flow can update the same installation and relaunch it. A portable copy can also install later through Settings → **Installation**. See the [1.1.0 upgrade notes](docs/RELEASE_1.1.0.md#upgrading).
+Already using this fork? Finish or cancel active transfers, exit MWB, and replace the existing EXE while keeping the adjacent preferences and recovery files. For an installed copy, the new EXE's **Install for me** flow can update the same installation and relaunch it. A portable copy can also install later through Settings → **Installation**. See the [1.1.1 upgrade notes](docs/RELEASE_1.1.1.md#upgrading).
 
 > [!NOTE]
 > **Why is the EXE roughly 88 MB (about 84 MiB)?** It is a self-contained .NET 10 Windows build. The EXE bundles the .NET runtime, Windows Forms desktop assemblies, and required native runtime components, so the destination PC does not need a separate .NET installation. Most of the download size is this bundled platform.
@@ -86,13 +86,13 @@ The fork accepts user-chosen shared keys of at least four characters and generat
 
 ## Release status
 
-**1.1.0** promotes the tested RC14 application code, with version and documentation updates. It brings the new transfer system, revised settings, and installer fixes into the stable release and `main` branch. The owner tested the RC series on real PCs and reported no major bugs in recent use; that does not mean every hardware or network edge case has been exercised.
+**1.1.1** promotes RC3 with a smoother computer matrix and stronger file-transfer recovery. It adds safer recovery-storage handling, retry for temporarily unreadable files, compact completion records, and improved display scaling. The owner reports RC3 is working well on real PCs; not every hardware or network edge case has been exercised.
 
 GitHub Actions builds Windows Release x64, runs the unit suite, checks the EXE version and single-file package, and publishes an accompanying SHA-256 checksum. Version 1.0.0 and the RC source tags remain available as earlier recovery points.
 
 ## Documentation
 
-- [What's new in 1.1.0 and upgrading](docs/RELEASE_1.1.0.md)
+- [What's new in 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
 - [File transfers, queue controls, and recovery](docs/FILE_TRANSFERS.md)
 - [Detailed extraction and product status](docs/README.md)
 - [Development and compatibility guide](docs/DEVELOPMENT.md)
@@ -140,5 +140,3 @@ This section records how the PowerToys module became this portable product. It i
 23. **Corrected machine-tile transparency and responsive layout.** RC8 replaces RC7's accidentally flattened white image backgrounds with true-alpha 360×288 PNGs, changes the image control from distortion-prone stretching to aspect-preserving zoom, and sizes each tile from the matrix's actual scaled bounds. One-row mode uses the otherwise available height, while two-row mode calculates both row heights and spacing so the lower monitors remain fully visible. The portable tile condenses its two rare split status phrases onto one line to leave more room for the art; machine order, state reporting, naming, connection behavior, and the classic green product icon are otherwise unchanged.
 
 </details>
-
-Current candidate: [1.1.1 RC3 smoother computer matrix](docs/RC_1.1.1_RC2.md).
