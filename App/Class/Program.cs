@@ -62,6 +62,19 @@ namespace MouseWithoutBorders.Class
         {
 #if PORTABLE_SINGLE_FILE
             string[] startupArgs = Environment.GetCommandLineArgs();
+            bool secureAgent = SecureDesktopAgent.IsAgentInvocation(startupArgs);
+            if (secureAgent)
+            {
+                if (!SecureDesktopAgent.TryInitialize(startupArgs)) return;
+            }
+            else if (SecureDesktopAgent.IsSystem || SecureDesktopAgent.IsLegacyServiceInvocation(startupArgs))
+            {
+                // SYSTEM must never reach portable setup, helper mode or user preferences.
+                Environment.ExitCode = 1;
+                return;
+            }
+            else if (SecureDesktopAgent.TryExport(startupArgs)) return;
+
             if (PortableApplication.IsClipboardHelperInvocation(startupArgs))
             {
                 global::MouseWithoutBorders.HelperHost.Program.Run();
@@ -72,17 +85,20 @@ namespace MouseWithoutBorders.Class
             _ = Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             Application.SetCompatibleTextRenderingDefault(false);
 
-            if (PortableInstallLifecycle.RunLaunchHelper(startupArgs)) return;
-
-            if (!PortableApplication.PrepareFirstLaunch())
+            if (!secureAgent)
             {
-                return;
-            }
+                if (PortableInstallLifecycle.RunLaunchHelper(startupArgs)) return;
 
-            // Do not touch Setting.Values until the first-launch choice has created
-            // (or located) the adjacent preferences file. Initializing it earlier
-            // creates default preferences and leaves the first process hidden.
-            StandaloneBootstrap.InitializeAfterFirstLaunch();
+                if (!PortableApplication.PrepareFirstLaunch())
+                {
+                    return;
+                }
+
+                // Do not touch Setting.Values until the first-launch choice has created
+                // (or located) the adjacent preferences file. Initializing it earlier
+                // creates default preferences and leaves the first process hidden.
+                StandaloneBootstrap.InitializeAfterFirstLaunch();
+            }
 #endif
 
             ManagedCommon.Logger.InitializeLogger("\\MouseWithoutBorders\\Logs");
@@ -121,6 +137,10 @@ namespace MouseWithoutBorders.Class
                 Logger.Log(Environment.CommandLine);
 
                 bool serviceMode = firstArg == ServiceModeArg;
+#if PORTABLE_SINGLE_FILE
+                serviceMode = SecureDesktopAgent.IsActive;
+                if (serviceMode) firstArg = "winlogon";
+#endif
 
                 if (PowerToys.GPOWrapper.GPOWrapper.GetConfiguredMwbAllowServiceModeValue() == PowerToys.GPOWrapper.GpoRuleConfigured.Disabled)
                 {
@@ -155,10 +175,12 @@ namespace MouseWithoutBorders.Class
 
                 if (serviceMode || runningAsSystem)
                 {
+#if !PORTABLE_SINGLE_FILE
                     if (args.Length > 2)
                     {
                         SettingsHelper.UserLocalAppDataPath = args[2].Trim();
                     }
+#endif
                 }
 
                 ShutdownWithPowerToys.WaitForPowerToysRunner(etwTrace);
@@ -443,6 +465,11 @@ namespace MouseWithoutBorders.Class
 
         internal static void StartService()
         {
+#if PORTABLE_SINGLE_FILE
+            // The optional service owns its worker. Neither copy may kill/restart
+            // unrelated normal-desktop processes through the old service path.
+            return;
+#else
             if (Common.RunWithNoAdminRight)
             {
                 return;
@@ -468,6 +495,7 @@ namespace MouseWithoutBorders.Class
             }
 
             Service.StartMouseWithoutBordersService();
+#endif
         }
 
         internal static string User { get; set; }

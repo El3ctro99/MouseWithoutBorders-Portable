@@ -174,6 +174,7 @@ namespace MouseWithoutBorders.Class
 
         private static bool firstRun;
         private readonly long connectTimeout;
+        private volatile bool closed;
         private static int restartCount;
 
         internal SocketStuff(int port, bool byUser)
@@ -232,7 +233,7 @@ namespace MouseWithoutBorders.Class
                 if (Common.SocketMutex == null)
                 {
                     firstRun = true;
-                    Common.SocketMutex = new Mutex(false, $"Global\\{Application.ProductName}-{FrmAbout.AssemblyVersion}-FF7CDABE-1015-0904-1103-24670FA5D16E");
+                    Common.SocketMutex = SecureDesktopAgent.CreateSocketMutex($"Global\\{Application.ProductName}-{FrmAbout.AssemblyVersion}-FF7CDABE-1015-0904-1103-24670FA5D16E");
                 }
 
                 Common.AcquireSocketMutex();
@@ -355,6 +356,7 @@ namespace MouseWithoutBorders.Class
 
         internal void Close(bool sentWait)
         {
+            closed = true;
             try
             {
                 if (!Common.RunOnScrSaverDesktop)
@@ -477,7 +479,8 @@ namespace MouseWithoutBorders.Class
             try
             {
                 skMessageServer = new TcpServer(TcpPort + 1, new ParameterizedThreadStart(TCPServerThread));
-                skClipboardServer = new TcpServer(TcpPort, new ParameterizedThreadStart(AcceptConnectionAndSendClipboardData));
+                if (!SecureDesktopAgent.IsActive)
+                    skClipboardServer = new TcpServer(TcpPort, new ParameterizedThreadStart(AcceptConnectionAndSendClipboardData));
             }
             catch (SocketException e)
             {
@@ -763,9 +766,20 @@ namespace MouseWithoutBorders.Class
 
         private void AddSocket(Socket s)
         {
+            if (closed)
+            {
+                s.Dispose();
+                return;
+            }
+
             string machineName = GetMachineNameFromSocket(s);
             Logger.Log($"New connection from client: [{machineName}].");
             TcpSk tcp = AddTcpSocket(false, s, SocketStatus.Connecting, machineName);
+            if (tcp == null)
+            {
+                return;
+            }
+
             StartNewTcpServer(tcp, machineName);
         }
 
@@ -779,6 +793,11 @@ namespace MouseWithoutBorders.Class
 
                 try
                 {
+                    if (closed)
+                    {
+                        return;
+                    }
+
                     // Receiving packages
                     MainTCPRoutine(tcp, machineName, false);
                 }
@@ -796,7 +815,7 @@ namespace MouseWithoutBorders.Class
 
         internal void UpdateTCPClients()
         {
-            if (InvalidKeyFound)
+            if (closed || InvalidKeyFound)
             {
                 return;
             }
@@ -883,11 +902,21 @@ namespace MouseWithoutBorders.Class
 
         internal void StartNewTcpClient(string machineName)
         {
+            if (closed)
+            {
+                return;
+            }
+
             void ClientThread(object obj)
             {
                 // SuppressFlow fixes an issue on service mode, where the helper process can't get enough permissions to be started again.
                 // More details can be found on: https://github.com/microsoft/PowerToys/pull/36892
                 using var asyncFlowControl = ExecutionContext.SuppressFlow();
+
+                if (closed)
+                {
+                    return;
+                }
 
                 IPHostEntry host;
                 bool useName2IP = false;
@@ -896,8 +925,12 @@ namespace MouseWithoutBorders.Class
                 string validAddressesSt = string.Empty;
 
                 // Add a dummy socket to show the status.
-                Socket dummySocket = new(AddressFamily.Unspecified, SocketType.Stream, ProtocolType.Tcp);
+                using Socket dummySocket = new(AddressFamily.Unspecified, SocketType.Stream, ProtocolType.Tcp);
                 TcpSk dummyTcp = AddTcpSocket(true, dummySocket, SocketStatus.Resolving, machineName);
+                if (dummyTcp == null)
+                {
+                    return;
+                }
 
                 Logger.LogDebug("Connecting to: " + machineName);
 
@@ -951,6 +984,11 @@ namespace MouseWithoutBorders.Class
                 }
                 catch (SocketException e)
                 {
+                    if (closed)
+                    {
+                        return;
+                    }
+
                     host = null;
 
                     UpdateTcpSockets(dummyTcp, SocketStatus.Timeout);
@@ -958,6 +996,11 @@ namespace MouseWithoutBorders.Class
                     Common.ShowToolTip(e.Message + ": " + machineName, 10000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
 
                     Logger.Log($"{nameof(StartNewTcpClient)}.{nameof(Dns.GetHostEntry)}: {e.Message}");
+                }
+
+                if (closed)
+                {
+                    return;
                 }
 
                 UpdateTcpSockets(dummyTcp, SocketStatus.NA);
@@ -1128,6 +1171,11 @@ namespace MouseWithoutBorders.Class
 
         private void StartNewTcpClientThread(string machineName, IPAddress ip)
         {
+            if (closed)
+            {
+                return;
+            }
+
             void NewTcpClient()
             {
                 // SuppressFlow fixes an issue on service mode, where the helper process can't get enough permissions to be started again.
@@ -1135,9 +1183,16 @@ namespace MouseWithoutBorders.Class
                 using var asyncFlowControl = ExecutionContext.SuppressFlow();
 
                 TcpClient tcpClient = null;
+                TcpSk tcp = null;
+                bool protocolStarted = false;
 
                 try
                 {
+                    if (closed)
+                    {
+                        return;
+                    }
+
                     tcpClient = new TcpClient(AddressFamily.InterNetworkV6);
                     tcpClient.Client.DualMode = true;
 
@@ -1153,57 +1208,49 @@ namespace MouseWithoutBorders.Class
                         return;
                     }
 
-                    TcpSk tcp = AddTcpSocket(true, tcpClient.Client, SocketStatus.Connecting, machineName, ip);
+                    tcp = AddTcpSocket(true, tcpClient.Client, SocketStatus.Connecting, machineName, ip);
+                    if (tcp == null)
+                    {
+                        return;
+                    }
 
                     // Update the other server socket's machine name based on this corresponding client socket.
                     UpdateTcpSockets(tcp, SocketStatus.Connecting);
 
                     Logger.LogDebug(string.Format(CultureInfo.CurrentCulture, "=====> Connecting to: {0}:{1}", machineName, ip.ToString()));
 
-                    long timeoutLeft;
-
-                    do
+                    if (!TcpConnectionRetry.TryConnect(
+                        () => tcpClient.Connect(ip, TcpPort + 1),
+                        connectTimeout,
+                        () => closed,
+                        Common.GetTick,
+                        () => Environment.TickCount64,
+                        Thread.Sleep,
+                        out SocketException connectionError))
                     {
-                        try
+                        if (closed)
                         {
-                            tcpClient.Connect(ip, TcpPort + 1);
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            // When user reconnects.
-                            Logger.LogDebug($"tcpClient.Connect: The socket has already been disposed: {machineName}:{ip}");
                             return;
                         }
-                        catch (SocketException e)
-                        {
-                            timeoutLeft = connectTimeout - Common.GetTick();
 
-                            if (timeoutLeft > 0)
-                            {
-                                Logger.LogDebug($"tcpClient.Connect: {timeoutLeft}: {e.Message}");
-                                Thread.Sleep(1000);
-                                continue;
-                            }
-                            else
-                            {
-                                Logger.Log($"tcpClient.Connect: Unable to connect after a timeout: {machineName}:{ip} : {e.Message}");
+                        Logger.Log($"tcpClient.Connect: Unable to connect after a timeout: {machineName}:{ip} : {connectionError?.Message}");
 
-                                string message = $"Connection timed out: {machineName}:{ip}";
+                        string message = $"Connection timed out: {machineName}:{ip}";
+                        Common.ShowToolTip(message, 5000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
 
-                                Common.ShowToolTip(message, 5000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
-
-                                UpdateTcpSockets(tcp, SocketStatus.Timeout);
-                                return;
-                            }
-                        }
-
-                        break;
+                        UpdateTcpSockets(tcp, SocketStatus.Timeout);
+                        return;
                     }
-                    while (true);
+
+                    if (closed)
+                    {
+                        return;
+                    }
 
                     Logger.LogDebug($"=====> Connected: {tcpClient.Client.LocalEndPoint} => {machineName}: {ip}");
 
                     // Sending/Receiving packages
+                    protocolStarted = true;
                     MainTCPRoutine(tcp, machineName, true);
                 }
                 catch (ObjectDisposedException e)
@@ -1227,6 +1274,22 @@ namespace MouseWithoutBorders.Class
                 catch (Exception e)
                 {
                     Logger.Log(e);
+                }
+                finally
+                {
+                    if (!protocolStarted)
+                    {
+                        // Failed/deduplicated attempts never enter MainTCPRoutine's
+                        // cleanup. Do not leave a disposed Connecting entry behind.
+                        tcpClient?.Dispose();
+                        if (tcp != null)
+                        {
+                            lock (TcpSocketsLock)
+                            {
+                                TcpSockets?.Remove(tcp);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1490,7 +1553,8 @@ namespace MouseWithoutBorders.Class
                                     {
                                         _ = FailedAttempt.AddOrUpdate(remoteEP, 0, (key, value) => 0);
 
-                                        _ = MessageBox.Show($"Too many connection attempts from [{remoteEP}]!\r\nRestart the app to retry.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                        if (!SecureDesktopAgent.IsActive)
+                                            _ = MessageBox.Show($"Too many connection attempts from [{remoteEP}]!\r\nRestart the app to retry.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                                         Common.MainForm.Quit(true, false);
                                     }
 
@@ -1632,6 +1696,7 @@ namespace MouseWithoutBorders.Class
 
         internal static void SendOrReceiveClipboardData(Socket s)
         {
+            if (SecureDesktopAgent.IsActive) { s.Dispose(); return; }
             try
             {
                 string remoteEndPoint = s.RemoteEndPoint.ToString();
@@ -1868,11 +1933,23 @@ namespace MouseWithoutBorders.Class
 
         private TcpSk AddTcpSocket(bool isClient, Socket s, SocketStatus status, string machineName)
         {
+            if (closed)
+            {
+                s.Dispose();
+                return null;
+            }
+
             Common.CloseAnUnusedSocket();
             TcpSk tcp = new(isClient, s, status, machineName);
 
             lock (TcpSocketsLock)
             {
+                if (closed)
+                {
+                    s.Dispose();
+                    return null;
+                }
+
 #if ENABLE_LEGACY_DOS_PROTECTION
                 PreventDoS(TcpSockets);
 #endif
@@ -1884,11 +1961,23 @@ namespace MouseWithoutBorders.Class
 
         private TcpSk AddTcpSocket(bool isClient, Socket s, SocketStatus status, string machineName, IPAddress ip)
         {
+            if (closed)
+            {
+                s.Dispose();
+                return null;
+            }
+
             Common.CloseAnUnusedSocket();
             TcpSk tcp = new(isClient, s, status, machineName, ip);
 
             lock (TcpSocketsLock)
             {
+                if (closed)
+                {
+                    s.Dispose();
+                    return null;
+                }
+
 #if ENABLE_LEGACY_DOS_PROTECTION
                 PreventDoS(TcpSockets);
 #endif
@@ -2032,6 +2121,13 @@ namespace MouseWithoutBorders.Class
         {
             if (sockets.Count > 100)
             {
+                if (SecureDesktopAgent.IsActive)
+                {
+                    // The service can replace a failed worker. Never spawn helper UI
+                    // or transfer cleanup as SYSTEM after a hostile connection burst.
+                    Process.GetCurrentProcess().Kill();
+                    return;
+                }
                 TcpSk tcp;
 
                 try
