@@ -4,9 +4,13 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.4:** About adds a manual updater for this fork's normal
-> application. It checks GitHub only when requested and asks before downloading,
-> replacing the EXE and restarting. See the [updater behavior and validation](docs/UPDATER_VALIDATION.md).
+> **1.2.0-preview.5:** Settings → Installation adds an optional **Run as administrator**
+> launch choice for this Windows user and this exact EXE location. It is off by
+> default and uses the normal Windows UAC approval on the next launch. See
+> [administrator launch and its limits](docs/ADMIN_LAUNCH.md).
+> About's manual updater, introduced in preview 4, checks GitHub only when
+> requested and asks before downloading, replacing the EXE and restarting. See
+> [updater behavior and validation](docs/UPDATER_VALIDATION.md).
 > This fork also has an optional Windows service for sign-in/UAC keyboard and mouse input. See
 > [setup and limits](docs/SECURE_DESKTOP_PREVIEW.md) and
 > [actual validation results](docs/SECURE_DESKTOP_VALIDATION.md).
@@ -69,7 +73,7 @@ Share one mouse and keyboard across up to four Windows PCs, without installing o
 - **Machine Setup:** arrange your PCs and choose one or two rows to match your desk.
 - **Other Options:** mouse switching, clipboard sharing, file transfers, receiving-folder choice, automatic transfer-window closing, and optional keyboard shortcuts. Hover over an option for its explanation and initial value.
 - **IP Mappings:** a large multiline editor with visible connection-help instructions for PCs that need a manually specified address.
-- **Installation:** install a portable copy, manage Start with Windows, open the app folder, or uninstall an installed copy.
+- **Installation:** install a portable copy, manage Start with Windows, choose **Run as administrator** for this copy, see its current permission status, open the app folder, or uninstall an installed copy.
 - **Mini Log:** a reusable diagnostic window with an explicit Copy all button and a bounded recent-event history.
 - **About:** shows the complete version and current maintainer, El3ctro99, while preserving the upstream portable and original developer credits. **Check for updates** checks this fork's GitHub releases and offers a download, verification and restart after your confirmation. **GitHub releases** opens the same fork in your browser.
 
@@ -83,6 +87,16 @@ The tray contains Settings, File transfers, About, and Exit. Service-only settin
 4. Use the same release on every connected PC and configure the same shared key.
 
 Already using this fork? Finish or cancel active transfers, exit MWB, and replace the existing EXE while keeping the adjacent preferences and recovery files. For an installed copy, the new EXE's **Install for me** flow can update the same installation and relaunch it. A portable copy can also install later through Settings → **Installation**. See the [1.1.1 upgrade notes](docs/RELEASE_1.1.1.md#upgrading).
+
+## Optional administrator launch
+
+Starting with **1.2.0-preview.5**, open **Settings → Installation** and select **Run as administrator** if you want this copy to request administrator permissions when opened. The page also shows whether the currently running app has administrator permissions. Exit MWB and reopen it to apply the launch choice; approve the Windows UAC prompt. Cancelling the prompt keeps a usable normal-permission copy running and leaves the choice enabled for the next launch.
+
+This elevates the whole ordinary application, including its input, clipboard, network and file-transfer code. It can address Windows permission boundaries around ordinary elevated windows such as Task Manager; protected UAC prompts still use the separate optional service. The previous session-only Task Manager workaround was confirmed on the user's pair; preview 5's persistent launch choice has its own [validation record](docs/ADMIN_LAUNCH.md#validation-status).
+
+The choice is local to the current Windows account and exact EXE path, outside the portable preferences. Replacing the EXE at the same location retains it; copying the folder elsewhere or to another PC does not enable it there. Clearing the checkbox affects the next ordinary launch; an already elevated process remains elevated until it closes, and an updater restart inherits the permissions of the process performing the update. To return to normal permissions, exit and reopen the unchecked copy from ordinary Explorer.
+
+**Start with Windows** remains a separate choice. If enabled, an opted-in copy requests the usual UAC approval when launched at sign-in; there is no silent approval, scheduled administrator task or Windows UAC policy change. Windows drag-and-drop between elevated MWB and ordinary Explorer may be restricted and still requires real-PC verification. See [administrator launch details](docs/ADMIN_LAUNCH.md).
 
 ## Check for updates
 
@@ -119,6 +133,7 @@ The upstream GitHub Actions workflow builds Windows Release x64, runs the unit s
 
 - [What's new in this fork's 1.2.0-preview.3](docs/RELEASE_1.2.0-preview.3.md)
 - [Preview 4 updater behavior, validation and limits](docs/UPDATER_VALIDATION.md)
+- [Preview 5 administrator launch and validation](docs/ADMIN_LAUNCH.md)
 - [Upstream 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
 - [File transfers, queue controls, and recovery](docs/FILE_TRANSFERS.md)
 - [Detailed extraction and product status](docs/README.md)
