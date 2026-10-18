@@ -1,25 +1,25 @@
 {
-  "tag": "mwb-v1.2.0-preview.4",
-  "title": "Mouse Without Borders Portable 1.2.0-preview.4",
+  "tag": "mwb-v1.2.0-preview.5",
+  "title": "Mouse Without Borders Portable 1.2.0-preview.5",
   "prerelease": true,
-  "summary": "Adds a manual updater for this fork and identifies El3ctro99 as its current maintainer in About, retaining upstream and original contributor credits.",
+  "summary": "Adds an optional administrator-launch setting for this Windows account and exact EXE location; new copies continue to run normally by default.",
   "changes": [
-    "About displays the full preview version and current fork maintainer, with links to this fork's GitHub releases.",
-    "Check for updates selects newer eligible releases from El3ctro99/MouseWithoutBorders-Portable; checks and installation remain user-initiated.",
-    "Downloads validate asset URLs, sizes, SHA-256, architecture and embedded version before a parent-bound helper replaces only the normal EXE.",
-    "Safe shutdown preserves preferences and transfer recovery; failed initial startup triggers an old-EXE restore/restart attempt.",
-    "Private user-profile staging, cancellation, bounded timeouts and cleanup avoid changing the optional protected-UAC service."
+    "Settings > Installation adds Run as administrator and displays the actual permissions of the current process separately from the next-launch choice.",
+    "The local choice defaults off and is stored per current Windows user and exact EXE path, outside portable pairing preferences.",
+    "An opted-in ordinary launch requests the Windows UAC approval for only its own EXE, with no forwarded arguments. Cancellation or startup errors leave the ordinary copy running.",
+    "Clipboard, installer, updater and validated secure-desktop modes retain their existing routing and tokens; the service and Windows UAC policy are unchanged.",
+    "The existing Start with Windows choice remains independent. No scheduled elevated task or RUNASADMIN compatibility override is created."
   ],
   "testing": [
-    "Release x64 build, 102 focused updater/About checks and 65 existing UAC/connection/settings regression checks passed locally on Windows.",
-    "Actual GitHub preview 3 assets passed download, CDN redirect, size, SHA-256, architecture and product-version checks without executing the downloaded payload.",
-    "Use the same normal-app version on each PC. Earlier builds require one manual EXE replacement to acquire the new updater; retain adjacent preferences and recovery files.",
-    "See docs/UPDATER_VALIDATION.md for exact automated, process-fixture and physical-PC evidence limits."
+    "Release x64 build and single-file publish passed; 125 focused elevation, UI and updater tests plus 65 existing regressions passed locally on Windows.",
+    "The administrator controls were rendered and visually inspected at normal and larger text sizes.",
+    "Finish transfers and exit MWB before a manual EXE replacement; keep adjacent preferences and recovery files. A same-path update preserves the local administrator-launch choice.",
+    "See docs/ADMIN_LAUNCH.md for exact real-UAC, peer-input, startup and clipboard validation limits."
   ],
   "known_limitations": [
-    "Unsigned Windows x64 preview. The three-second process startup check does not establish a working peer connection or detect later failures.",
-    "In-app replacement requires a local user-profile path with safe ownership/permissions throughout its ancestry. Other locations require a manual EXE replacement.",
-    "The optional preview 3 protected-UAC service remains compatible and is not updated by the in-app updater; use its separate package for service changes.",
-    "No new physical two-PC, lock/sign-in or sleep/wake acceptance is claimed. Existing inherited full-suite failures are documented separately."
+    "Unsigned Windows x64 preview. Administrator mode elevates the whole ordinary application, including input received from peers; it is an explicit local opt-in.",
+    "Windows approval is still required. Cancelling UAC continues without administrator privileges, and already-running processes are not demoted by clearing the checkbox.",
+    "Explorer drag/drop, clipboard and file-transfer behavior across integrity levels require real-PC verification. Sign-in startup has not been established by a live logoff/logon test.",
+    "Protected UAC and sign-in input still use the separate optional service. Existing updater path restrictions and inherited full-suite failures remain documented."
   ]
 }

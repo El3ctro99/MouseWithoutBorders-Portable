@@ -99,6 +99,10 @@ namespace MouseWithoutBorders.Class
                     return;
                 }
 
+                // Elevate only an ordinary launch after all helper/service modes
+                // have been routed, before settings, input or networking start.
+                if (PortableElevation.TryRelaunchElevated(startupArgs)) return;
+
                 // Do not touch Setting.Values until the first-launch choice has created
                 // (or located) the adjacent preferences file. Initializing it earlier
                 // creates default preferences and leaves the first process hidden.
