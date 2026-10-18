@@ -135,6 +135,12 @@ namespace MouseWithoutBorders
         internal void Quit(bool cleanup, bool isFormClosing)
         {
             Tag = "Quitting...";
+            if (SecureDesktopAgent.IsActive)
+            {
+                if (cleanup) InitAndCleanup.Cleanup();
+                Application.Exit();
+                return;
+            }
 
             try
             {
@@ -328,8 +334,8 @@ namespace MouseWithoutBorders
             helperTimer.Start();
             Helper.WndProcCounter++;
 
-            if (Environment.OSVersion.Version.Major > 6 ||
-                   (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.Minor >= 1))
+            if (!SecureDesktopAgent.IsActive && (Environment.OSVersion.Version.Major > 6 ||
+                   (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.Minor >= 1)))
             {
                 // Win7 up
                 _ = NativeMethods.ChangeWindowMessageFilterEx(Handle, NativeMethods.WM_SHOW_SETTINGS_FORM, 1, IntPtr.Zero);
@@ -497,7 +503,6 @@ namespace MouseWithoutBorders
                         else if (InitAndCleanup.PleaseReopenSocket == InitAndCleanup.REOPEN_WHEN_WSAECONNRESET)
                         {
                             InitAndCleanup.PleaseReopenSocket = 0;
-                            Thread.Sleep(1000);
                             MachineStuff.UpdateClientSockets("REOPEN_WHEN_WSAECONNRESET");
                         }
 
@@ -775,6 +780,14 @@ namespace MouseWithoutBorders
         // private bool checkClipboard = false;
         protected override void WndProc(ref Message m)
         {
+            // No user-defined helper, transfer or settings messages on Winlogon.
+            if (SecureDesktopAgent.IsActive && m.Msg is NativeMethods.WM_SHOW_DRAG_DROP
+                or NativeMethods.WM_HIDE_DRAG_DROP or NativeMethods.WM_HIDE_DD_HELPER
+                or NativeMethods.WM_CHECK_EXPLORER_DRAG_DROP or NativeMethods.WM_SHOW_SETTINGS_FORM)
+            {
+                m.Result = IntPtr.Zero;
+                return;
+            }
             const int WM_ENDSESSION = 0x0016;
             const int WM_QUERYENDSESSION = 0x0011;
 
@@ -1028,6 +1041,7 @@ namespace MouseWithoutBorders
 #if SHOW_ON_WINLOGON
         private void ShowMouseWithoutBordersUiOnWinLogonDesktop(bool initMenuState)
         {
+            if (SecureDesktopAgent.IsActive) return;
             Common.PaintCount = 0;
             try
             {
@@ -1084,6 +1098,7 @@ namespace MouseWithoutBorders
 
         internal void ShowMessageOnLogonDesktop(bool turnOff)
         {
+            if (SecureDesktopAgent.IsActive) return;
             if (turnOff && turnedOff)
             {
                 colorB = 240;
@@ -1149,6 +1164,7 @@ namespace MouseWithoutBorders
 
         internal void PaintMyNameOnDesktop()
         {
+            if (SecureDesktopAgent.IsActive) return;
             if (Setting.Values.HideLogonLogo)
             {
                 return;

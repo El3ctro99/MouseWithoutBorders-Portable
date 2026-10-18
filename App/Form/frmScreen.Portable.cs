@@ -15,6 +15,13 @@ internal partial class FrmScreen
     private void InitializePortableMenu()
     {
         MainMenu.Items.Clear();
+        if (SecureDesktopAgent.IsActive)
+        {
+            NotifyIcon.Visible = false;
+            NotifyIcon.ContextMenuStrip = null;
+            ContextMenuStrip = null;
+            return;
+        }
         MainMenu.Items.Add(menuMachineMatrix);
         var transfers = new ToolStripMenuItem("File transfers");
         transfers.Click += (_, _) => TransferCenter.ShowCenter();

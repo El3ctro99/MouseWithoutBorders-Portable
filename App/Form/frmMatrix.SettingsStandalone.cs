@@ -195,6 +195,8 @@ internal partial class FrmMatrix
             SetOptionTip(comboBoxEasyMouseOption, "Always", "Switch at a screen edge immediately, or only while holding Ctrl or Shift.");
             toolTip.SetToolTip(labelEasyMouse, toolTip.GetToolTip(comboBoxEasyMouseOption));
             mouse.Add(Actions(labelEasyMouse, comboBoxEasyMouseOption));
+            AddOption(mouse, checkBoxBlockFullscreenEdgeSwitching, "On",
+                "Prevent edge switching while a full-screen app is active on this PC. Turn off to allow switching from full-screen or borderless apps. Requires Switch computers at screen edge.\n\nSome games capture the pointer. Enable keyboard shortcuts and choose Switch PCs to leave those games.");
             AddOption(mouse, checkBoxCircle, "Off", "Wrap across the outside edges of your computer layout.");
             AddOption(mouse, checkBoxHideMouse, "On", "Hide the pointer on this PC while controlling another.");
             checkBoxDrawMouse.Text = "Show a fallback cursor";
@@ -204,6 +206,10 @@ internal partial class FrmMatrix
             checkBoxBlockMouseAtCorners.Text = "Block switching at screen corners";
             AddOption(mouse, checkBoxBlockMouseAtCorners, "Off", "Reduce accidental switches near a corner.");
             AddOption(mouse, checkBoxBlockScreenSaver, "On", "Keep other PCs' screen savers from starting while you are actively using MWB.");
+            // Keep the extra edge-switch option within the original window.
+            // Remove only inter-row margins, preserving each control's full text height.
+            foreach (Control option in mouse.Controls)
+                if (option is not Label) option.Margin = new Padding(3, 0, 3, 0);
 
             var sharing = Section("Clipboard and file transfers");
             AddOption(sharing, checkBoxShareClipboard, "On", "Share copied text and images between PCs.");
@@ -351,7 +357,9 @@ internal partial class FrmMatrix
             content.Add(SettingsButton("Uninstall…", UninstallInstalledCopy));
         }
         else content.Add(SettingsButton("Install for me…", InstallPortableCopyButton_Click));
-        content.Add(Explanation("Your settings are saved beside MouseWithoutBorders.exe. The app does not install a Windows service, and updates are downloaded manually."));
+        content.Add(Explanation("Your settings are saved beside MouseWithoutBorders.exe. Normal portable and per-user setup do not install a Windows service. Updates are downloaded manually."));
+        content.Add(new Label { Text = "Optional sign-in and UAC control", AutoSize = true });
+        content.Add(Explanation("The optional Secure Desktop service preview is intended to add input on the Windows sign-in screen and protected UAC prompts. It requires administrator installation, a reviewed settings snapshot, and testing on both PCs. Clipboard and file transfers stay on the normal desktop. Read README.md in the service package (docs/SECURE_DESKTOP_PREVIEW.md in the source) before installing."));
         HostStack(tab, content); tabControlSetting.TabPages.Add(tab);
     }
     private void RefreshInstallationStartup()
