@@ -4,12 +4,14 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.3:** this fork adds an optional Windows
-> service for sign-in/UAC keyboard and mouse input. See
+> **1.2.0-preview.4:** About adds a manual updater for this fork's normal
+> application. It checks GitHub only when requested and asks before downloading,
+> replacing the EXE and restarting. See the [updater behavior and validation](docs/UPDATER_VALIDATION.md).
+> This fork also has an optional Windows service for sign-in/UAC keyboard and mouse input. See
 > [setup and limits](docs/SECURE_DESKTOP_PREVIEW.md) and
 > [actual validation results](docs/SECURE_DESKTOP_VALIDATION.md).
 > Protected UAC control, a shorter return pause and Warframe switching were
-> confirmed with two physical PCs. Lock/sign-in and sleep/wake remain untested.
+> confirmed with two physical PCs in preview 3. Lock/sign-in and sleep/wake remain untested.
 > The upstream portable-release description below refers to the original
 > service-free product, which remains the default normal-user mode here.
 
@@ -19,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases/tag/mwb-v1.2.0-preview.3">Download 1.2.0-preview.3</a>
+  <a href="https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases">This fork's release downloads</a>
   ·
   <a href="https://github.com/aeae1/MouseWithoutBorders-Portable/releases/latest">Upstream stable release</a>
   ·
@@ -69,18 +71,30 @@ Share one mouse and keyboard across up to four Windows PCs, without installing o
 - **IP Mappings:** a large multiline editor with visible connection-help instructions for PCs that need a manually specified address.
 - **Installation:** install a portable copy, manage Start with Windows, open the app folder, or uninstall an installed copy.
 - **Mini Log:** a reusable diagnostic window with an explicit Copy all button and a bounded recent-event history.
-- **About:** manually check for updates and open GitHub to download them. This preview's embedded links still target the upstream repository; use this fork's release link above for preview updates. Updates are never installed automatically.
+- **About:** shows the complete version and current maintainer, El3ctro99, while preserving the upstream portable and original developer credits. **Check for updates** checks this fork's GitHub releases and offers a download, verification and restart after your confirmation. **GitHub releases** opens the same fork in your browser.
 
 The tray contains Settings, File transfers, About, and Exit. Service-only settings and optional clipboard/network status popups are removed. The tray icon stays plain.
 
 ## Download and run
 
-1. [Download 1.2.0-preview.3](https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases/tag/mwb-v1.2.0-preview.3) and extract the compact Windows x64 ZIP.
-2. Run `MouseWithoutBorders.exe` from the extracted `portable` folder. For optional protected-UAC support, follow the [service setup instructions](docs/SECURE_DESKTOP_PREVIEW.md).
+1. [Open this fork's releases](https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases) and download `MouseWithoutBorders.exe`, or extract it from the compact Windows x64 ZIP.
+2. Run `MouseWithoutBorders.exe` from your chosen folder (`portable` in the compact ZIP). For optional protected-UAC support, follow the [service setup instructions](docs/SECURE_DESKTOP_PREVIEW.md).
 3. Choose **Run portable here**, or **Install for me** and select an install folder. Installation offers a desktop shortcut and optional Start with Windows.
 4. Use the same release on every connected PC and configure the same shared key.
 
 Already using this fork? Finish or cancel active transfers, exit MWB, and replace the existing EXE while keeping the adjacent preferences and recovery files. For an installed copy, the new EXE's **Install for me** flow can update the same installation and relaunch it. A portable copy can also install later through Settings → **Installation**. See the [1.1.1 upgrade notes](docs/RELEASE_1.1.1.md#upgrading).
+
+## Check for updates
+
+Starting with **1.2.0-preview.4**, open **About → Check for updates**. The updater shows the installed version and checks `El3ctro99/MouseWithoutBorders-Portable` on GitHub. If an eligible newer version is available, choose **Download and install** and confirm the restart. Downloads are verified before MWB closes; pairing, adjacent preferences, transfer recovery files and Start with Windows settings remain in place. Opening MWB does not start a background update check, and a check alone does not install anything.
+
+Stable versions offer newer stable releases. Preview and release-candidate versions can offer newer prereleases and stable releases, using semantic version ordering; for example, `preview.10` follows `preview.9` and a final `1.2.0` follows `1.2.0-rc.1`.
+
+The in-app replacement supports an ordinary copy in your own Windows user-profile folder on a local fixed drive when the complete path's ownership and permissions pass validation. The default per-user installation qualifies only when those checks pass. Other locations, paths writable by unrelated identities, shared or protected folders, removable/network drives and paths containing symbolic links or junctions require a manual download. The updater explains a refused update and keeps the **Open GitHub releases** link available. To update manually, finish transfers, exit MWB and replace only the EXE while retaining the preferences and recovery files beside it.
+
+The optional protected-UAC service is updated separately with the full package and its administrator setup script. The updater displays the installed service version when it can read it; updating the normal app leaves the protected service EXE, service profile and firewall rule unchanged. Follow a release's service upgrade instructions when the package changes.
+
+The download must match the release's declared size, SHA-256 checksum and embedded product version, including its prerelease suffix. The previous EXE is kept during replacement and restored if the new process fails its initial startup check. That check observes three seconds of process liveness; it does not prove a working connection to another PC or catch failures that happen later. See [updater validation and limits](docs/UPDATER_VALIDATION.md).
 
 > [!NOTE]
 > **Why is the EXE roughly 88 MB (about 84 MiB)?** It is a self-contained .NET 10 Windows build. The EXE bundles the .NET runtime, Windows Forms desktop assemblies, and required native runtime components, so the destination PC does not need a separate .NET installation. Most of the download size is this bundled platform.
@@ -91,7 +105,7 @@ Already using this fork? Finish or cancel active transfers, exit MWB, and replac
 - The portable app supports normal interactive desktops. The optional service adds protected-UAC input; lock/sign-in support remains untested. See the [preview validation and limits](docs/SECURE_DESKTOP_VALIDATION.md).
 - Clipboard file copy/paste retains its separate transport; the transfer window and recovery controls described above apply to drag-and-drop.
 - Busy Wi-Fi can still affect mouse responsiveness during full-speed copying.
-- Builds are unsigned and may trigger Windows SmartScreen. This preview's build, focused tests and physical-PC checks are recorded in the [validation report](docs/SECURE_DESKTOP_VALIDATION.md); the complete inherited test suite is not green.
+- Builds are unsigned and may trigger Windows SmartScreen. The optional service's earlier build, focused tests and physical-PC checks are recorded in its [validation report](docs/SECURE_DESKTOP_VALIDATION.md); preview 4's updater checks are recorded [separately](docs/UPDATER_VALIDATION.md). The complete inherited test suite is not green.
 
 The fork accepts user-chosen shared keys of at least four characters and generates twelve-character random keys. Short keys are easier to guess; keys do not expire or trigger periodic regeneration prompts. Microsoft's upstream work and encryption implementation remain credited in the source.
 
@@ -99,11 +113,12 @@ The fork accepts user-chosen shared keys of at least four characters and generat
 
 **1.1.1** promotes RC3 with a smoother computer matrix and stronger file-transfer recovery. It adds safer recovery-storage handling, retry for temporarily unreadable files, compact completion records, and improved display scaling. The owner reports RC3 is working well on real PCs; not every hardware or network edge case has been exercised.
 
-The upstream GitHub Actions workflow builds Windows Release x64, runs the unit suite, checks the EXE version and single-file package, and publishes an accompanying SHA-256 checksum. Upstream version 1.0.0 and the RC source tags remain available as earlier recovery points. This fork's 1.2.0-preview.3 is a separate prerelease; see its [release notes](docs/RELEASE_1.2.0-preview.3.md).
+The upstream GitHub Actions workflow builds Windows Release x64, runs the unit suite, checks the EXE version and single-file package, and publishes an accompanying SHA-256 checksum. Upstream version 1.0.0 and the RC source tags remain available as earlier recovery points. This fork's 1.2.0 previews are separate prereleases; preview 3's service and game-switching changes remain recorded in its [release notes](docs/RELEASE_1.2.0-preview.3.md).
 
 ## Documentation
 
 - [What's new in this fork's 1.2.0-preview.3](docs/RELEASE_1.2.0-preview.3.md)
+- [Preview 4 updater behavior, validation and limits](docs/UPDATER_VALIDATION.md)
 - [Upstream 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
 - [File transfers, queue controls, and recovery](docs/FILE_TRANSFERS.md)
 - [Detailed extraction and product status](docs/README.md)
@@ -116,7 +131,7 @@ The upstream GitHub Actions workflow builds Windows Release x64, runs the unit s
 
 Derived from Microsoft PowerToys Mouse Without Borders and distributed under the [MIT License](LICENSE). Microsoft and the original Mouse Without Borders/PowerToys contributors retain attribution for their upstream work. The upstream [third-party notices](NOTICE.md) are retained.
 
-The original portable extraction was developed for `aeae1` through ChatGPT coding sessions. This fork's optional secure-desktop service and preview changes are maintained by `El3ctro99` with ChatGPT assistance. This project is not affiliated with or endorsed by Microsoft.
+Mouse Without Borders was created by Truong Do (Đỗ Đức Trường), with Microsoft Garage and later PowerToys contributors continuing the work. The upstream portable edition is maintained by `aeae1`; its original extraction was developed through ChatGPT coding sessions. This fork's optional secure-desktop service, updater and preview changes are maintained by `El3ctro99` with ChatGPT assistance. About displays the current fork maintainer prominently and retains the original and upstream credits. This project is not affiliated with or endorsed by Microsoft.
 
 <details>
 <summary>Technical extraction history — the original 1.0 release</summary>

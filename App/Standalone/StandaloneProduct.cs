@@ -10,7 +10,7 @@ namespace MouseWithoutBorders.Core;
 
 internal static class StandaloneProduct
 {
-    internal const string ProjectUrl = "https://github.com/aeae1/MouseWithoutBorders-Portable";
+    internal const string ProjectUrl = "https://github.com/El3ctro99/MouseWithoutBorders-Portable";
 
     internal static void OpenProjectPage(IWin32Window owner = null)
     {

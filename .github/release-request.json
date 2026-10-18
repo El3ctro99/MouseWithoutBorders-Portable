@@ -1,25 +1,25 @@
 {
-  "tag": "mwb-v1.1.1",
-  "title": "Mouse Without Borders Portable 1.1.1",
-  "prerelease": false,
-  "summary": "Version 1.1.1 brings smoother computer arrangement and stronger file-transfer recovery. Promotes the tested RC3 application code unchanged.",
+  "tag": "mwb-v1.2.0-preview.4",
+  "title": "Mouse Without Borders Portable 1.2.0-preview.4",
+  "prerelease": true,
+  "summary": "Adds a manual updater for this fork and identifies El3ctro99 as its current maintainer in About, retaining upstream and original contributor credits.",
   "changes": [
-    "Smooth, double-buffered computer matrix with immediate dragging, one/two rows, keyboard arrangement and reliable drag cancellation.",
-    "Readable monitor tiles and status labels at enlarged display sizes, retaining native name editors and checkboxes.",
-    "Pause transfers visibly when recovery information cannot be saved; resume explicitly after storage is available.",
-    "Recover missing or damaged transfer journals from backup, and retain compact completion receipts to handle lost acknowledgements.",
-    "Retry temporarily unreadable regular files safely, verify receiving-folder identity, and budget disk space against active transfers.",
-    "Reuse receive buffers and reduce redundant recovery writes while retaining checksums and durable completion checkpoints."
+    "About displays the full preview version and current fork maintainer, with links to this fork's GitHub releases.",
+    "Check for updates selects newer eligible releases from El3ctro99/MouseWithoutBorders-Portable; checks and installation remain user-initiated.",
+    "Downloads validate asset URLs, sizes, SHA-256, architecture and embedded version before a parent-bound helper replaces only the normal EXE.",
+    "Safe shutdown preserves preferences and transfer recovery; failed initial startup triggers an old-EXE restore/restart attempt.",
+    "Private user-profile staging, cancellation, bounded timeouts and cleanup avoid changing the optional protected-UAC service."
   ],
   "testing": [
-    "RC3 passed 155 automated Windows tests with one existing skip; the owner reports that RC3 is working well on real PCs.",
-    "The stable release repeats Windows Release x64 build, automated tests, executable-version and single-file package checks before publication.",
-    "Use 1.1.1 on every PC. Finish or cancel transfers, replace the EXE while keeping adjacent preferences and recovery files, or update through Install for me."
+    "Release x64 build, 102 focused updater/About checks and 65 existing UAC/connection/settings regression checks passed locally on Windows.",
+    "Actual GitHub preview 3 assets passed download, CDN redirect, size, SHA-256, architecture and product-version checks without executing the downloaded payload.",
+    "Use the same normal-app version on each PC. Earlier builds require one manual EXE replacement to acquire the new updater; retain adjacent preferences and recovery files.",
+    "See docs/UPDATER_VALIDATION.md for exact automated, process-fixture and physical-PC evidence limits."
   ],
   "known_limitations": [
-    "One self-contained, unsigned Windows x64 EXE; no Windows service or protected-desktop support.",
-    "Full-speed copies can still compete with mouse sharing on busy Wi-Fi.",
-    "Folder copies can partially complete. Unsupported links and unreadable directories require a fresh drag.",
-    "Recovery records now include compact receipts; keep backups and avoid downgrading while transfers are unfinished."
+    "Unsigned Windows x64 preview. The three-second process startup check does not establish a working peer connection or detect later failures.",
+    "In-app replacement requires a local user-profile path with safe ownership/permissions throughout its ancestry. Other locations require a manual EXE replacement.",
+    "The optional preview 3 protected-UAC service remains compatible and is not updated by the in-app updater; use its separate package for service changes.",
+    "No new physical two-PC, lock/sign-in or sleep/wake acceptance is claimed. Existing inherited full-suite failures are documented separately."
   ]
 }
