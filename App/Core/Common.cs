@@ -354,7 +354,8 @@ internal static class Common
 
                 string desktop = WinAPI.GetMyDesktop();
                 MachineStuff.oneInstanceCheck?.Close();
-                _ = Process.Start(Application.ExecutablePath, desktop);
+                if (!SecureDesktopAgent.IsActive)
+                    _ = Process.Start(Application.ExecutablePath, desktop);
                 Logger.LogDebug($"Started on desktop {desktop}");
 
                 Process.GetCurrentProcess().KillProcess(true);
@@ -779,6 +780,7 @@ internal static class Common
 
     internal static void ToggleShowTopMostMessage(string text, string bigText, int timeOut)
     {
+        if (SecureDesktopAgent.IsActive) return;
         DoSomethingInUIThread(() =>
         {
             if (topMostMessageForm == null)

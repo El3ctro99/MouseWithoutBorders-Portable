@@ -46,6 +46,7 @@ namespace ManagedCommon
         public static void InitializeLogger(string relativePath)
         {
             _ = relativePath;
+            if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive) return;
 
             var directory = Path.Combine(Path.GetTempPath(), "MouseWithoutBorders", "Logs");
 
@@ -59,6 +60,8 @@ namespace ManagedCommon
             string sourceFilePath = "",
             int sourceLineNumber = 0)
         {
+            // SYSTEM must not follow user-created temp directories or retain keys.
+            if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive) return;
             try
             {
                 var builder = new StringBuilder();

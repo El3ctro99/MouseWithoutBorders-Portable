@@ -254,8 +254,12 @@ internal static class WinAPI
         IntPtr hD = NativeMethods.OpenInputDesktop(0, false, NativeMethods.DESKTOP_READOBJECTS);
         if (hD != IntPtr.Zero)
         {
-            _ = NativeMethods.GetUserObjectInformation(hD, NativeMethods.UOI_NAME, arInputDesktop, arInputDesktop.Length, out _);
-            return Common.GetString(arInputDesktop).Replace("\0", string.Empty);
+            try
+            {
+                _ = NativeMethods.GetUserObjectInformation(hD, NativeMethods.UOI_NAME, arInputDesktop, arInputDesktop.Length, out _);
+                return Common.GetString(arInputDesktop).Replace("\0", string.Empty);
+            }
+            finally { CloseInputDesktop(hD); }
         }
 
         return string.Empty;
@@ -272,6 +276,7 @@ internal static class WinAPI
 
     internal static void CheckForDesktopSwitchEvent(bool cleanupIfExit)
     {
+        if (SecureDesktopAgent.IsActive) return; // The optional service owns all worker lifecycle decisions.
         try
         {
             if (!IsMyDesktopActive() || Common.CurrentProcess.SessionId != NativeMethods.WTSGetActiveConsoleSessionId())
@@ -356,4 +361,8 @@ internal static class WinAPI
     {
         return NativeMethods.GetCursorPos(ref p);
     }
+
+    [DllImport("user32.dll", EntryPoint = "CloseDesktop")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseInputDesktop(IntPtr desktop);
 }

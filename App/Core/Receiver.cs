@@ -85,6 +85,13 @@ internal static class Receiver
 
     internal static void ProcessPackage(DATA package, TcpSk tcp)
     {
+        // The SYSTEM agent handles input only. Apply the allowlist before any
+        // packet can trigger clipboard, screenshot, file, or drag/drop work.
+        if (SecureDesktopAgent.IsActive && !SecureDesktopAgent.AllowsPacket(package.Type))
+        {
+            return;
+        }
+
         if (!PreProcess(package))
         {
             return;
@@ -144,7 +151,7 @@ internal static class Receiver
                         return;
                     }
 
-                    if (DragDrop.HandleCancelMouse(package.Md.dwFlags)) return;
+                    if (!SecureDesktopAgent.IsActive && DragDrop.HandleCancelMouse(package.Md.dwFlags)) return;
 
                     if (Math.Abs(package.Md.X) >= Event.MOVE_MOUSE_RELATIVE && Math.Abs(package.Md.Y) >= Event.MOVE_MOUSE_RELATIVE)
                     {
@@ -190,8 +197,11 @@ internal static class Receiver
                     CustomCursor.ShowFakeMouseCursor(Common.LastX, Common.LastY);
                 }
 
-                DragDrop.DragDropStep01(package.Md.dwFlags);
-                DragDrop.DragDropStep09(package.Md.dwFlags);
+                if (!SecureDesktopAgent.IsActive)
+                {
+                    DragDrop.DragDropStep01(package.Md.dwFlags);
+                    DragDrop.DragDropStep09(package.Md.dwFlags);
+                }
                 break;
 
             case PackageType.NextMachine:
