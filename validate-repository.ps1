@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 $requiredPaths = @(
     'App\MouseWithoutBorders.csproj',
     'MouseWithoutBorders.UnitTests\MouseWithoutBorders.UnitTests.csproj',
+    'SecureDesktopService\MouseWithoutBorders.SecureDesktop.Service.csproj',
     'docs\DEVELOPMENT.md',
     'docs\UPSTREAM_SYNC.md',
     'LICENSE'
@@ -42,15 +43,17 @@ foreach ($forbiddenPath in $forbiddenPaths) {
 $projectFiles = @(
     Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.csproj' -File -Recurse |
         ForEach-Object { [IO.Path]::GetRelativePath($PSScriptRoot, $_.FullName) } |
+        Where-Object { $_ -notmatch '^artifacts[\\/]' } |
         Sort-Object
 )
 $expectedProjects = @(
     'App\MouseWithoutBorders.csproj',
-    'MouseWithoutBorders.UnitTests\MouseWithoutBorders.UnitTests.csproj'
+    'MouseWithoutBorders.UnitTests\MouseWithoutBorders.UnitTests.csproj',
+    'SecureDesktopService\MouseWithoutBorders.SecureDesktop.Service.csproj'
 )
 
 if (Compare-Object -ReferenceObject $expectedProjects -DifferenceObject $projectFiles) {
-    throw "Expected only the portable app and unit-test projects. Found: $($projectFiles -join ', ')"
+    throw "Expected the portable app, optional service and unit-test projects. Found: $($projectFiles -join ', ')"
 }
 
 Write-Host "Clean portable repository layout verified ($($projectFiles.Count) projects)."
