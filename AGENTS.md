@@ -103,9 +103,13 @@ A compile-only success does not prove file-transfer or service correctness.
 
 For changes produced through the connected ChatGPT coding workflow, include:
 
-`Assisted-by: ChatGPT (GPT-5.6 Sol)`
+`Assisted-by: ChatGPT`
 
-GitHub will still show the authenticated account (`aeae1`) as the actual author/committer. See `docs/AI_ASSISTANCE.md`.
+This fork is maintained by `El3ctro99`; `aeae1` maintains the upstream portable
+repository. Preserve upstream commit attribution. GitHub records authors and
+committers from the commit metadata and authenticated publishing workflow; do not
+assume all historical commits belong to this fork's owner. See
+`docs/AI_ASSISTANCE.md`.
 
 ## More context
 

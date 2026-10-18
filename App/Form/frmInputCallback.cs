@@ -74,6 +74,11 @@ namespace MouseWithoutBorders
             }
             catch (Win32Exception e)
             {
+                if (SecureDesktopAgent.IsActive)
+                {
+                    Environment.Exit(1);
+                    return;
+                }
                 _ = MessageBox.Show(
                     "Error installing Mouse/keyboard hook, error code: " + e.ErrorCode,
                     Application.ProductName,

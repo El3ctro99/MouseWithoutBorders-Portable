@@ -63,6 +63,7 @@ internal static class Logger
 
     internal static void Log(string log, bool clearLog = false, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
     {
+        if (SecureDesktopAgent.IsActive) return;
         log = DateTime.Now.ToString("MM/dd HH:mm:ss.fff", CultureInfo.InvariantCulture) + $"({Thread.CurrentThread.ManagedThreadId})" + log;
 
         ManagedCommon.Logger.LogInfo(log, memberName, sourceFilePath, sourceLineNumber);

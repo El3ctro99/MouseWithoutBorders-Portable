@@ -205,7 +205,7 @@ namespace MouseWithoutBorders.Class
             }
         }
 
-        internal Settings() : this(SettingsUtils.Default, watchChanges: true) { }
+        internal Settings() : this(SettingsUtils.Default, watchChanges: !SecureDesktopAgent.IsActive) { }
 
         internal Settings(SettingsUtils settingsUtils, bool watchChanges)
         {
@@ -281,6 +281,7 @@ namespace MouseWithoutBorders.Class
         {
             get
             {
+                if (SecureDesktopAgent.IsActive) return false;
                 if (GPOWrapper.GetConfiguredMwbClipboardSharingEnabledValue() == GpoRuleConfigured.Disabled)
                 {
                     return false;
@@ -314,6 +315,7 @@ namespace MouseWithoutBorders.Class
         {
             get
             {
+                if (SecureDesktopAgent.IsActive) return false;
                 if (GPOWrapper.GetConfiguredMwbFileTransferEnabledValue() == GpoRuleConfigured.Disabled)
                 {
                     return false;
@@ -635,13 +637,17 @@ namespace MouseWithoutBorders.Class
             }
         }
 
+        // The remembered destination is runtime state, not this computer's
+        // persisted identity. Socket close snapshots may contain a peer or ALL.
+        private uint? destinationMachineId;
+
         internal uint DesMachineID
         {
             get
             {
                 lock (_loadingSettingsLock)
                 {
-                    return (uint)_properties.MachineID.Value;
+                    return destinationMachineId ?? (uint)MachineId;
                 }
             }
 
@@ -649,7 +655,7 @@ namespace MouseWithoutBorders.Class
             {
                 lock (_loadingSettingsLock)
                 {
-                    _properties.MachineID.Value = (int)value;
+                    destinationMachineId = value;
                 }
             }
         }

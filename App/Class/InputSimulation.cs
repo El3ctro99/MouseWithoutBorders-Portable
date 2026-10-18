@@ -50,6 +50,7 @@ namespace MouseWithoutBorders.Class
 
         private static uint SendInputEx(NativeMethods.INPUT input)
         {
+            if (!SecureDesktopAgent.IsCurrentDesktopActive()) return 0;
             Common.PaintCount = 0;
 
             uint rv = 0;
@@ -107,6 +108,7 @@ namespace MouseWithoutBorders.Class
 
         internal static void SendKey(KEYBDDATA kd)
         {
+            if (!SecureDesktopAgent.IsCurrentDesktopActive()) return;
             string log = string.Empty;
             NativeMethods.KEYEVENTF dwFlags = NativeMethods.KEYEVENTF.KEYDOWN;
             uint scanCode = 0;
@@ -461,11 +463,13 @@ namespace MouseWithoutBorders.Class
                         break;
 
                     case VK.END:
+#if !PORTABLE_SINGLE_FILE
                         if (ctrlDown && altDown)
                         {
                             ctrlDown = altDown = false;
                             new ServiceController("MouseWithoutBordersSvc").Start(Args);
                         }
+#endif
 
                         break;
 

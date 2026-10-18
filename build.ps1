@@ -27,6 +27,7 @@ if (-not $msbuild) {
 
 $projects = @(
     'App\MouseWithoutBorders.csproj',
+    'SecureDesktopService\MouseWithoutBorders.SecureDesktop.Service.csproj',
     'MouseWithoutBorders.UnitTests\MouseWithoutBorders.UnitTests.csproj'
 )
 

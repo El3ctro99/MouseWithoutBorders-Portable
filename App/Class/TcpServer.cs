@@ -112,6 +112,7 @@ namespace MouseWithoutBorders.Class
 
         private void LogError(string log)
         {
+            if (SecureDesktopAgent.IsActive) return;
             if (!logged)
             {
                 logged = true;

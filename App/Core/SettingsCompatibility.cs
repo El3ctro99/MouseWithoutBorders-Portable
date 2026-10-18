@@ -399,11 +399,17 @@ namespace Microsoft.PowerToys.Settings.UI.Library
         internal SettingsUtils(string pathOverride = null) => _pathOverride = pathOverride;
         private string PathForModule(string moduleName) => _pathOverride ?? GetSettingsPath(moduleName);
 
-        public bool SettingsExists(string moduleName) => File.Exists(PathForModule(moduleName));
+        public bool SettingsExists(string moduleName) => MouseWithoutBorders.Core.SecureDesktopAgent.IsActive || File.Exists(PathForModule(moduleName));
 
         public T GetSettingsOrDefault<T>(string moduleName)
             where T : new()
         {
+            if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive)
+            {
+                if (typeof(T) != typeof(MouseWithoutBordersSettings))
+                    throw new InvalidOperationException("The secure desktop worker only accepts its protected input settings.");
+                return (T)(object)MouseWithoutBorders.Core.SecureDesktopAgent.InputSettings;
+            }
             var path = PathForModule(moduleName);
             string json = File.ReadAllText(path);
             if (typeof(T) == typeof(MouseWithoutBordersSettings))
@@ -417,6 +423,8 @@ namespace Microsoft.PowerToys.Settings.UI.Library
 
         public void SaveSettings(string json, string moduleName)
         {
+            if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive)
+                throw new InvalidOperationException("The secure desktop input profile is read-only.");
             MouseWithoutBorders.Core.PortableSettingsStore.Write(PathForModule(moduleName), json);
         }
 
@@ -424,6 +432,8 @@ namespace Microsoft.PowerToys.Settings.UI.Library
         {
 #if STANDALONE
             _ = moduleName;
+            if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive)
+                return MouseWithoutBorders.SecureDesktop.ServiceTrust.ProfilePath;
             return Path.Combine(AppContext.BaseDirectory, MouseWithoutBorders.Core.PortableApplication.SettingsFileName);
 #else
             var root = Utilities.Helper.UserLocalAppDataPath;

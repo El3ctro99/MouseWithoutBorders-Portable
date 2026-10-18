@@ -21,6 +21,7 @@ internal partial class FrmMatrix
 
     private CheckBox checkBoxEnableKeyboardShortcuts;
     private CheckBox checkBoxMouseEdgeSwitching;
+    private CheckBox checkBoxBlockFullscreenEdgeSwitching;
     private bool portableMachineTilesConfigured;
     private bool layingOutMatrix;
 
@@ -214,6 +215,19 @@ internal partial class FrmMatrix
         labelEasyMouse.Left = checkBoxVKMap.Left;
         labelEasyMouse.Top = activationTop + ((comboBoxEasyMouseOption.Height - labelEasyMouse.Height) / 2);
         groupBoxOtherOptions.Controls.Add(labelEasyMouse);
+
+        checkBoxBlockFullscreenEdgeSwitching = new CheckBox
+        {
+            AutoSize = true,
+            Checked = Setting.Values.DisableEasyMouseWhenForegroundWindowIsFullscreen,
+            Enabled = checkBoxMouseEdgeSwitching.Checked,
+            Name = "checkBoxBlockFullscreenEdgeSwitching",
+            TabIndex = checkBoxMouseEdgeSwitching.TabIndex + 1,
+            Text = "Block edge switching in full-screen apps",
+            UseVisualStyleBackColor = true,
+        };
+        checkBoxBlockFullscreenEdgeSwitching.CheckedChanged += CheckBoxBlockFullscreenEdgeSwitching_CheckedChanged;
+        groupBoxOtherOptions.Controls.Add(checkBoxBlockFullscreenEdgeSwitching);
     }
 
     private static string PortableEasyMouseActivationText(EasyMouseOption option)
@@ -229,9 +243,26 @@ internal partial class FrmMatrix
     private void CheckBoxMouseEdgeSwitching_CheckedChanged(object sender, EventArgs e)
     {
         comboBoxEasyMouseOption.Enabled = checkBoxMouseEdgeSwitching.Checked;
+        if (checkBoxBlockFullscreenEdgeSwitching != null)
+        {
+            checkBoxBlockFullscreenEdgeSwitching.Enabled = checkBoxMouseEdgeSwitching.Checked;
+        }
+
         Setting.Values.EasyMouse = checkBoxMouseEdgeSwitching.Checked
             ? (int)PortableEasyMouseOption(comboBoxEasyMouseOption.Text)
             : (int)EasyMouseOption.Disable;
+    }
+
+    private void CheckBoxBlockFullscreenEdgeSwitching_CheckedChanged(object sender, EventArgs e)
+    {
+        bool blockFullscreen = checkBoxBlockFullscreenEdgeSwitching.Checked;
+        if (Setting.Values.DisableEasyMouseWhenForegroundWindowIsFullscreen == blockFullscreen)
+        {
+            return;
+        }
+
+        Setting.Values.DisableEasyMouseWhenForegroundWindowIsFullscreen = blockFullscreen;
+        ShowUpdateMessage();
     }
 
     private void ComboBoxEasyMouseActivation_TextChanged(object sender, EventArgs e)
@@ -271,6 +302,9 @@ internal partial class FrmMatrix
         {
             checkBoxMouseEdgeSwitching.Checked = enabled;
         }
+
+        checkBoxBlockFullscreenEdgeSwitching.Checked = Setting.Values.DisableEasyMouseWhenForegroundWindowIsFullscreen;
+        checkBoxBlockFullscreenEdgeSwitching.Enabled = enabled;
     }
 
     private void CheckBoxShareClipboard_PortableTextChanged(object sender, EventArgs e)

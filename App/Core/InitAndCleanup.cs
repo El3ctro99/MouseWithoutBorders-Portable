@@ -112,7 +112,10 @@ internal static class InitAndCleanup
 
         try
         {
-            InputSimulation.Injector = InputInjector.TryCreate();
+            // The protected agent uses native SendInput. WinRT injection may be
+            // unavailable on Winlogon and must not prevent the worker starting.
+            InputSimulation.Injector = SecureDesktopAgent.IsActive ? null : InputInjector.TryCreate();
+            NativeMethods.InjectMouseInputAvailable = false;
             if (InputSimulation.Injector != null)
             {
                 InputSimulation.MoveMouseRelative(0, 0);
@@ -151,8 +154,11 @@ internal static class InitAndCleanup
             Logger.TelemetryLogTrace($"{nameof(SystemEvents_PowerModeChanged)}: {e.Mode}", SeverityLevel.Information);
             try
             {
-                if (e.Mode == PowerModes.Suspend) DurableTransfers.Stop();
-                else { DurableTransfers.ResumeService(); if (DurableTransfers.Jobs.Any(j => !j.Terminal)) TransferCenter.ShowCenter(); }
+                if (!SecureDesktopAgent.IsActive)
+                {
+                    if (e.Mode == PowerModes.Suspend) DurableTransfers.Stop();
+                    else { DurableTransfers.ResumeService(); if (DurableTransfers.Jobs.Any(j => !j.Terminal)) TransferCenter.ShowCenter(); }
+                }
             }
             catch (Exception error) { Logger.Log("Transfers: sleep recovery: " + error.Message); }
             LastResumeSuspendTime = DateTime.UtcNow;

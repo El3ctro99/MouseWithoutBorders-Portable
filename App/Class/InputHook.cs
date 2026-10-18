@@ -69,6 +69,8 @@ namespace MouseWithoutBorders.Class
 
         private int hMouseHook;
         private int hKeyboardHook;
+        private readonly bool captureLocalInput;
+        internal bool HasInstalledCaptureHooks => hMouseHook != 0 || hKeyboardHook != 0;
         private static NativeMethods.HookProc mouseHookProcedure;
         private static NativeMethods.HookProc keyboardHookProcedure;
 
@@ -91,8 +93,13 @@ namespace MouseWithoutBorders.Class
 
         internal static bool EasyMouseKeyDown { get; set; }
 
-        internal InputHook()
+        internal InputHook() : this(SecureDesktopAgent.IsActive)
         {
+        }
+
+        internal InputHook(bool secureDesktopAgent)
+        {
+            captureLocalInput = !secureDesktopAgent;
             Start();
         }
 
@@ -103,6 +110,11 @@ namespace MouseWithoutBorders.Class
 
         internal void Start()
         {
+            // The protected worker receives remote input through SendInput. It
+            // must never swallow the user's physical input or switch it to a peer.
+            // Relative-input boundary responses remain in Receiver, independently
+            // of these local capture hooks.
+            if (!captureLocalInput) return;
             int le;
             bool er = false;
 

@@ -709,8 +709,19 @@ internal static class MachineStuff
         }
     }
 
-    internal static string AddToMachinePool(DATA package)
+    internal static string AddToMachinePool(DATA package) => AddToMachinePool(package, SecureDesktopAgent.IsActive);
+
+    internal static string AddToMachinePool(DATA package, bool secureDesktopAgent)
     {
+        if (secureDesktopAgent)
+        {
+            // Discovery can refresh authenticated IDs, but cannot reconfigure
+            // either PC or broadcast over the administrator-reviewed layout.
+            string peer = LearnSecureDesktopPeer(MachinePool, package);
+            UpdateMachinePoolStringSetting();
+            UpdateClientSockets("SecureDesktopPeerLearned");
+            return peer;
+        }
         // Log("********** AddToMachinePool called: " + package.src.ToString(CultureInfo.InvariantCulture));
 
         // There should be no duplicates in machine pool.
@@ -782,6 +793,18 @@ internal static class MachineStuff
         Common.Sk?.UpdateTCPClients();
     }
 
+    internal static string LearnSecureDesktopPeer(MachinePool pool, DATA package)
+    {
+        ArgumentNullException.ThrowIfNull(pool);
+        ArgumentNullException.ThrowIfNull(package);
+        string name = package.MachineName;
+        if (!pool.TryFindMachineByName(name, out MachineInf existing) && !pool.LearnMachine(name))
+            return "The 5th machine";
+        string knownName = string.IsNullOrEmpty(existing.Name) ? name : existing.Name;
+        _ = pool.TryUpdateMachineID(knownName, package.Src, updateTimeStamp: true);
+        return knownName;
+    }
+
     private static SettingsForm settings;
 
     internal static SettingsForm Settings
@@ -792,6 +815,7 @@ internal static class MachineStuff
 
     internal static void ShowSetupForm(bool reopenSockets = false)
     {
+        if (SecureDesktopAgent.IsActive) return;
         Logger.LogDebug("========== BEGIN THE SETUP EXPERIENCE ==========", true);
         Setting.Values.MyKey = Encryption.MyKey = Encryption.CreateRandomKey();
         Encryption.GeneratedKey = true;
@@ -837,6 +861,7 @@ internal static class MachineStuff
 
     internal static void ShowMachineMatrix()
     {
+        if (SecureDesktopAgent.IsActive) return;
         if (!Setting.Values.ShowOriginalUI)
         {
             return;
@@ -959,6 +984,7 @@ internal static class MachineStuff
 
     internal static void SendMachineMatrix()
     {
+        if (SecureDesktopAgent.IsActive) return;
         if (MachineMatrix == null)
         {
             return;
@@ -985,6 +1011,7 @@ internal static class MachineStuff
 
     internal static void UpdateMachineMatrix(DATA package)
     {
+        if (SecureDesktopAgent.IsActive) return;
         uint i = (uint)package.Src;
         string matrixIncludedMachine = package.MachineName;
 

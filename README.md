@@ -4,20 +4,31 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
+> **1.2.0-preview.3:** this fork adds an optional Windows
+> service for sign-in/UAC keyboard and mouse input. See
+> [setup and limits](docs/SECURE_DESKTOP_PREVIEW.md) and
+> [actual validation results](docs/SECURE_DESKTOP_VALIDATION.md).
+> Protected UAC control, a shorter return pause and Warframe switching were
+> confirmed with two physical PCs. Lock/sign-in and sleep/wake remain untested.
+> The upstream portable-release description below refers to the original
+> service-free product, which remains the default normal-user mode here.
+
 <p align="center">
   <strong>Modern Mouse Without Borders, separated from PowerToys and packaged as one portable Windows EXE.</strong><br>
   Vibe-coded with ChatGPT from Microsoft's open-source implementation.
 </p>
 
 <p align="center">
-  <a href="https://github.com/aeae1/MouseWithoutBorders-Portable/releases/latest">Download the latest stable release</a>
+  <a href="https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases/tag/mwb-v1.2.0-preview.3">Download 1.2.0-preview.3</a>
   ·
-  <a href="https://github.com/aeae1/MouseWithoutBorders-Portable/actions/workflows/build.yml">Windows build status</a>
+  <a href="https://github.com/aeae1/MouseWithoutBorders-Portable/releases/latest">Upstream stable release</a>
+  ·
+  <a href="https://github.com/aeae1/MouseWithoutBorders-Portable/actions/workflows/build.yml">Upstream Windows build status</a>
 </p>
 
 ## A much better file-transfer experience
 
-**[Version 1.1.1 is now stable](https://github.com/aeae1/MouseWithoutBorders-Portable/releases/tag/mwb-v1.1.1).** The new drag-and-drop system goes well beyond the original file-copy feature.
+**[Upstream stable baseline: 1.1.1](https://github.com/aeae1/MouseWithoutBorders-Portable/releases/tag/mwb-v1.1.1).** This preview builds on its drag-and-drop system, which goes well beyond the original file-copy feature.
 
 - **Drag files and whole folders between PCs**, with clear file-type previews, directly into an open Explorer folder or your chosen receiving folder.
 - **See what's happening:** one transfer window with individual progress bars, overall speed and estimated time remaining.
@@ -34,7 +45,7 @@ Share one mouse and keyboard across up to four Windows PCs, without installing o
 - One self-contained `MouseWithoutBorders.exe`.
 - Preferences in `MouseWithoutBorders.prefs.json` beside the EXE, with separate recovery metadata for unfinished transfers.
 - Run from your chosen folder or use the optional per-user installation.
-- No Windows service, required PowerToys installation, or telemetry.
+- No required Windows service, PowerToys installation, or telemetry; the protected-UAC service is optional.
 - Recognizable green branding, compact settings, and a simple tray menu.
 
 ## Screenshots
@@ -58,14 +69,14 @@ Share one mouse and keyboard across up to four Windows PCs, without installing o
 - **IP Mappings:** a large multiline editor with visible connection-help instructions for PCs that need a manually specified address.
 - **Installation:** install a portable copy, manage Start with Windows, open the app folder, or uninstall an installed copy.
 - **Mini Log:** a reusable diagnostic window with an explicit Copy all button and a bounded recent-event history.
-- **About:** manually check for updates and open GitHub to download them. Updates are never installed automatically.
+- **About:** manually check for updates and open GitHub to download them. This preview's embedded links still target the upstream repository; use this fork's release link above for preview updates. Updates are never installed automatically.
 
 The tray contains Settings, File transfers, About, and Exit. Service-only settings and optional clipboard/network status popups are removed. The tray icon stays plain.
 
 ## Download and run
 
-1. [Download the latest stable EXE](https://github.com/aeae1/MouseWithoutBorders-Portable/releases/latest/download/MouseWithoutBorders.exe).
-2. Put it in a folder where you want to keep it, then run it.
+1. [Download 1.2.0-preview.3](https://github.com/El3ctro99/MouseWithoutBorders-Portable/releases/tag/mwb-v1.2.0-preview.3) and extract the compact Windows x64 ZIP.
+2. Run `MouseWithoutBorders.exe` from the extracted `portable` folder. For optional protected-UAC support, follow the [service setup instructions](docs/SECURE_DESKTOP_PREVIEW.md).
 3. Choose **Run portable here**, or **Install for me** and select an install folder. Installation offers a desktop shortcut and optional Start with Windows.
 4. Use the same release on every connected PC and configure the same shared key.
 
@@ -77,22 +88,23 @@ Already using this fork? Finish or cancel active transfers, exit MWB, and replac
 ## Compatibility and limitations
 
 - The published download is for Windows x64. Use the same fork release on all connected PCs for the complete file-transfer feature set.
-- This edition supports normal interactive desktops. It does not install a service or control protected UAC prompts and the Windows sign-in screen.
+- The portable app supports normal interactive desktops. The optional service adds protected-UAC input; lock/sign-in support remains untested. See the [preview validation and limits](docs/SECURE_DESKTOP_VALIDATION.md).
 - Clipboard file copy/paste retains its separate transport; the transfer window and recovery controls described above apply to drag-and-drop.
 - Busy Wi-Fi can still affect mouse responsiveness during full-speed copying.
-- Builds are unsigned and may trigger Windows SmartScreen. The release workflow publishes the EXE only after its source builds, tests, and package checks pass.
+- Builds are unsigned and may trigger Windows SmartScreen. This preview's build, focused tests and physical-PC checks are recorded in the [validation report](docs/SECURE_DESKTOP_VALIDATION.md); the complete inherited test suite is not green.
 
 The fork accepts user-chosen shared keys of at least four characters and generates twelve-character random keys. Short keys are easier to guess; keys do not expire or trigger periodic regeneration prompts. Microsoft's upstream work and encryption implementation remain credited in the source.
 
-## Release status
+## Upstream stable release status
 
 **1.1.1** promotes RC3 with a smoother computer matrix and stronger file-transfer recovery. It adds safer recovery-storage handling, retry for temporarily unreadable files, compact completion records, and improved display scaling. The owner reports RC3 is working well on real PCs; not every hardware or network edge case has been exercised.
 
-GitHub Actions builds Windows Release x64, runs the unit suite, checks the EXE version and single-file package, and publishes an accompanying SHA-256 checksum. Version 1.0.0 and the RC source tags remain available as earlier recovery points.
+The upstream GitHub Actions workflow builds Windows Release x64, runs the unit suite, checks the EXE version and single-file package, and publishes an accompanying SHA-256 checksum. Upstream version 1.0.0 and the RC source tags remain available as earlier recovery points. This fork's 1.2.0-preview.3 is a separate prerelease; see its [release notes](docs/RELEASE_1.2.0-preview.3.md).
 
 ## Documentation
 
-- [What's new in 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
+- [What's new in this fork's 1.2.0-preview.3](docs/RELEASE_1.2.0-preview.3.md)
+- [Upstream 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
 - [File transfers, queue controls, and recovery](docs/FILE_TRANSFERS.md)
 - [Detailed extraction and product status](docs/README.md)
 - [Development and compatibility guide](docs/DEVELOPMENT.md)
@@ -104,7 +116,7 @@ GitHub Actions builds Windows Release x64, runs the unit suite, checks the EXE v
 
 Derived from Microsoft PowerToys Mouse Without Borders and distributed under the [MIT License](LICENSE). Microsoft and the original Mouse Without Borders/PowerToys contributors retain attribution for their upstream work. The upstream [third-party notices](NOTICE.md) are retained.
 
-The portable extraction and fork-specific changes are developed for repository owner `aeae1` through ChatGPT coding sessions. This project is not affiliated with or endorsed by Microsoft.
+The original portable extraction was developed for `aeae1` through ChatGPT coding sessions. This fork's optional secure-desktop service and preview changes are maintained by `El3ctro99` with ChatGPT assistance. This project is not affiliated with or endorsed by Microsoft.
 
 <details>
 <summary>Technical extraction history — the original 1.0 release</summary>
