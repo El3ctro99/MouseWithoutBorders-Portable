@@ -1,12 +1,18 @@
 # AI-assisted development identity
 
-This portable fork is being modified interactively for aeae1 with assistance from ChatGPT.
+This fork is maintained by `El3ctro99` with assistance from ChatGPT. The original
+portable extraction and its earlier history come from `aeae1`'s upstream
+repository; their existing attribution is preserved.
 
 Preferred attribution for assistant-driven commits:
 
-`AI-Assisted-By: aeae1's vibe coding assistant — ChatGPT GPT-5.6 Sol`
+`Assisted-by: ChatGPT`
 
-The GitHub connector authenticates as aeae1, so GitHub will record the authenticated account as the commit author/committer for connector-created commits. The attribution trailer above is used to distinguish changes made with the assistant from hand-authored changes without requiring a separate bot account or credential.
+GitHub records the author and committer according to the commit metadata and the
+authenticated publishing workflow. The attribution trailer identifies
+assistant-produced changes without claiming a separate bot account, credential
+or model version. Historical upstream trailers remain part of the original
+record.
 
 ## Working rules
 

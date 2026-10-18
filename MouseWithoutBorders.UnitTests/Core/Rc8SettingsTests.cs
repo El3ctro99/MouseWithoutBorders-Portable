@@ -115,6 +115,9 @@ public sealed class Rc8SettingsTests
             {
                 Common.MachineName = "LOCAL-PC";
                 var document = new MouseWithoutBordersSettings(); document.Properties.TransferFile = false;
+                Assert.IsTrue(document.Properties.DisableEasyMouseWhenForegroundWindowIsFullscreen,
+                    "Exposing the existing setting must preserve its protective default.");
+                document.Properties.DisableEasyMouseWhenForegroundWindowIsFullscreen = false;
                 Setting.Values = Settings(document);
                 Setting.Values.Username = "settings-test";
                 using var settings = new MouseWithoutBorders.FrmMatrix();
@@ -122,7 +125,13 @@ public sealed class Rc8SettingsTests
                 typeof(MouseWithoutBorders.FrmMatrix).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(settings, new object[] { EventArgs.Empty });
                 typeof(MouseWithoutBorders.FrmMatrix).GetField("formShown", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(settings, true);
                 var tabs = settings.Controls.OfType<TabControl>().Single();
-                using var host = new System.Windows.Forms.Form { ClientSize = settings.ClientSize };
+                using var host = new System.Windows.Forms.Form
+                {
+                    ClientSize = settings.ClientSize,
+                    StartPosition = FormStartPosition.Manual,
+                    Location = new Point(-32000, -32000),
+                    ShowInTaskbar = false,
+                };
                 tabs.Dock = DockStyle.Fill;
                 host.Controls.Add(tabs); host.Show();
                 var other = tabs.TabPages.Cast<TabPage>().Single(t => t.Text == "Other Options");
@@ -166,6 +175,37 @@ public sealed class Rc8SettingsTests
                     tabs.SelectedTab = other; Application.DoEvents();
                 }
                 Assert.IsTrue(switchTime.Elapsed < TimeSpan.FromSeconds(3), $"Six tab visits took {switchTime.Elapsed}.");
+                var edgeSwitching = controls.OfType<CheckBox>().Single(c => c.Name == "checkBoxMouseEdgeSwitching");
+                var blockFullscreen = controls.OfType<CheckBox>().Single(c => c.Name == "checkBoxBlockFullscreenEdgeSwitching");
+                Assert.IsTrue(blockFullscreen.Visible && blockFullscreen.Enabled);
+                Assert.IsFalse(blockFullscreen.Checked, "Opening Settings must retain the existing full-screen switching choice.");
+                Assert.IsTrue(tips.GetToolTip(blockFullscreen).Contains("borderless"));
+                Assert.IsTrue(tips.GetToolTip(blockFullscreen).Contains("Switch PCs"));
+                foreach (bool block in new[] { true, false })
+                {
+                    blockFullscreen.Checked = block;
+                    edgeSwitching.Checked = false;
+                    Assert.IsFalse(blockFullscreen.Enabled);
+                    Assert.AreEqual(block, blockFullscreen.Checked);
+                    Assert.AreEqual(block, Setting.Values.DisableEasyMouseWhenForegroundWindowIsFullscreen,
+                        "Disabling edge switching must preserve its saved full-screen choice.");
+                    edgeSwitching.Checked = true;
+                    Assert.IsTrue(blockFullscreen.Enabled);
+                    Assert.AreEqual(block, blockFullscreen.Checked);
+                    Setting.Values.SaveSettingsSynchronously();
+                    var reloaded = new MouseWithoutBorders.Class.Settings(new SettingsUtils(path), false);
+                    Assert.AreEqual(block, reloaded.DisableEasyMouseWhenForegroundWindowIsFullscreen,
+                        "Changing the real checkbox must survive preferences reload in either direction.");
+                }
+
+                if (Environment.GetEnvironmentVariable("RUNNER_TEMP") is string normalTemp)
+                {
+                    string previews = Path.Combine(normalTemp, "mwb-ui-previews"); Directory.CreateDirectory(previews);
+                    using var pixels = new Bitmap(other.ClientSize.Width, other.ClientSize.Height);
+                    other.DrawToBitmap(pixels, other.ClientRectangle);
+                    pixels.Save(Path.Combine(previews, "settings-fullscreen-switching-normal.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+
                 var share = controls.OfType<CheckBox>().Single(c => c.Name == "checkBoxShareClipboard");
                 var transfer = controls.OfType<CheckBox>().Single(c => c.Name == "checkBoxTransferFile");
                 Assert.IsFalse(Setting.Values.TransferFile, "Opening settings must preserve a disabled transfer choice.");
@@ -195,6 +235,18 @@ public sealed class Rc8SettingsTests
                         if (c is Label or CheckBox) Assert.IsTrue(c.Height >= c.GetPreferredSize(new Size(c.Width, 0)).Height, c.Text + " wrapped height");
                     }
                 }
+
+                tabs.SelectedTab = other; host.PerformLayout(); Application.DoEvents();
+                var fullscreenBounds = other.RectangleToClient(blockFullscreen.RectangleToScreen(blockFullscreen.ClientRectangle));
+                Assert.IsTrue(other.ClientRectangle.Contains(fullscreenBounds), "The full-screen checkbox must remain visible with larger text.");
+                if (Environment.GetEnvironmentVariable("RUNNER_TEMP") is string largeTemp)
+                {
+                    string previews = Path.Combine(largeTemp, "mwb-ui-previews"); Directory.CreateDirectory(previews);
+                    using var pixels = new Bitmap(other.ClientSize.Width, other.ClientSize.Height);
+                    other.DrawToBitmap(pixels, other.ClientRectangle);
+                    pixels.Save(Path.Combine(previews, "settings-fullscreen-switching-large-text.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+
                 Setting.Values.SaveSettingsSynchronously(); host.Close();
             }
             finally { Setting.Values = original; Common.MachineName = originalName; }
