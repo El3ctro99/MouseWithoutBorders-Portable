@@ -42,7 +42,7 @@ internal partial class FrmAbout
             Location = new Point(155, 537), Size = new Size(242, 20),
             Anchor = AnchorStyles.Top | AnchorStyles.Left, AutoEllipsis = true,
         };
-        check.Click += (_, _) => { using var update = new UpdateForm(); update.ShowDialog(this); };
+        check.Click += (_, _) => { using var update = new UpdateForm(); ShowPortableUpdateDialog(update); };
         releases.LinkClicked += (_, _) =>
         {
             const string releaseUrl = StandaloneProduct.ProjectUrl + "/releases";
@@ -79,6 +79,14 @@ internal partial class FrmAbout
         Layout += (_, _) => LayoutPortableAbout(check, releases);
         Shown += (_, _) => LayoutPortableAbout(check, releases);
         LayoutPortableAbout(check, releases);
+    }
+
+    internal void ShowPortableUpdateDialog(UpdateForm update)
+    {
+        // About is topmost. Set the modal child explicitly as well so a later
+        // owner activation cannot cover the entire update window.
+        update.TopMost = TopMost;
+        update.ShowDialog(this);
     }
 
     private void LayoutPortableAbout(Button check, LinkLabel releases)

@@ -4,7 +4,9 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.7:** An elevated app starts its clipboard helper with the same
+> **1.2.0-preview.8:** The update dialog keeps the About window's topmost state
+> so About cannot cover it. See [dialog validation](docs/UPDATE_DIALOG_VISIBILITY.md).
+> Preview 7 starts an elevated app's clipboard helper with the same
 > user's normal permissions so ordinary Explorer can offer dragged files.
 > See [helper permission checks and validation](docs/CLIPBOARD_HELPER_CONTEXT.md).
 > Preview 6 retries missing peers continuously after network changes,
