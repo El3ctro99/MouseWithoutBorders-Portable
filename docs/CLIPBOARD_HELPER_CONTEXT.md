@@ -73,11 +73,12 @@ error 5 from `CreateProcessWithTokenW`; those guards aborted before stopping or
 replacing the running application. The successful Explorer-automation fixture
 was required before the actual replacement.
 
-Two-PC Explorer OLE and file-content acceptance is still pending. A successful
-launch or synthetic IPC round trip does not prove an actual file transfer.
+After the upgrade, the user confirmed that dragging a file from the laptop's
+ordinary Explorer to the preview 4 desktop successfully copied the file. This
+validates the reported laptop-to-desktop case with preview 7 and preview 4.
+The confirmation did not include an independent file-hash comparison.
 
-Physical acceptance must cover an ordinary Explorer file dragged from the
-elevated laptop to the desktop, the receiving preview and completed content,
-the reverse direction, text/image clipboard sharing, cancellation, remote input
-into Task Manager, and normal shutdown/restart. Lock/unlock, sleep/wake and
-reconnect remain separate real-machine checks.
+The reverse direction, text/image clipboard sharing, cancellation, remote input
+into Task Manager, and normal shutdown/restart still need acceptance for this
+preview. Lock/unlock, sleep/wake and reconnect remain separate real-machine
+checks.
