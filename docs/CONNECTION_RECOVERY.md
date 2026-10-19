@@ -85,7 +85,7 @@ See [Modern Standby](https://learn.microsoft.com/en-us/windows-hardware/design/d
 
 ## Deployment and protected desktop scope
 
-This preview is deployed as an update of the **normal application only**. The
+This preview is intended to update the **normal application only**. The
 already installed protected-UAC service and its preview.3 agent remain separate
 and unchanged. Their reviewed profile, binary location, startup mode and firewall
 rule are not replaced by this update.
@@ -107,6 +107,7 @@ reconnection; existing preview.3 acceptance is recorded in
 | Native display-payload parsing and notification-handle cleanup tests | 8 cases passed, including invalid native pointers and concurrent cleanup |
 | Existing service, settings, updater, elevation, encryption and transfer regressions | 231 focused cases passed |
 | Repository layout and release metadata | Three-project check and 3 metadata cases passed |
+| Local installation on the affected laptop | Deferred; the prepared EXE was not applied and preview.5 remains installed |
 | Physical display-off, sleep/wake and network-change acceptance | Pending |
 | Protected-UAC handoff with the existing preview.3 service | Pending |
 
