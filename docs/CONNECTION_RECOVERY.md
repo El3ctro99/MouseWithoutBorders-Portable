@@ -110,7 +110,8 @@ reconnection; existing preview.3 acceptance is recorded in
 | Native display-payload parsing and notification-handle cleanup tests | 8 cases passed, including invalid native pointers and concurrent cleanup |
 | Existing service, settings, updater, elevation, encryption and transfer regressions | 231 focused cases passed |
 | Repository layout and release metadata | Three-project check and 3 metadata cases passed |
-| Local installation on the affected laptop | Deferred; the prepared EXE was not applied and preview.5 remains installed |
+| Local installation on the affected laptop | Passed; reviewed EXE hash installed, main app and clipboard helper running at High integrity; preview.5 EXE retained for rollback |
+| Ordinary desktop remote pointer and keyboard after installation | User confirmed both working between the physical PCs |
 | Physical display-off, sleep/wake and network-change acceptance | Pending |
 | Protected-UAC handoff with the existing preview.3 service | Pending |
 
@@ -123,6 +124,17 @@ The local self-contained x64 EXE is 88,171,923 bytes, SHA-256
 The 305 targeted checks above are not a claim that the full inherited suite
 passes. Known inherited locale/visual failures remain outside this validation.
 Private local logs and TRX files are under `artifacts/reconnect-preview6/`.
+
+The application code at `faa703febf48cfca8c5ec7d7058a774b4fcb1571` was
+installed on the affected laptop on October 19, 2026 after Windows approval.
+The existing app exited gracefully; pairing, machine layout, Start with Windows
+and the exact-path administrator-launch choice were preserved. The normal app
+and clipboard helper were verified at High integrity, with two established TCP
+connections. The user confirmed ordinary-desktop pointer and keyboard control.
+The protected preview.3 agent's checksum remained unchanged, its service stayed
+running, and `EnableLUA`/`PromptOnSecureDesktop` remained enabled. This baseline
+does not establish long display-off, sleep/wake, clipboard/file-transfer or
+protected-UAC acceptance for preview.6.
 
 ## Two-PC acceptance checklist
 
