@@ -45,5 +45,9 @@ modal fixture results under
 records contain app window metadata and status text, without preferences or
 pairing keys.
 
-Installing preview 8 and the user's acceptance check on the installed copy are
-still pending.
+Preview 8 is installed and running on the laptop. The reviewed replacement
+verified that pairing, startup and the existing administrator-launch choice
+were preserved. The main process runs at High integrity and its clipboard
+helper at Medium; the protected service and Windows UAC settings are unchanged.
+The user confirmed that the installed About → Check for updates dialog stays
+visible after the check. The other PC has not been updated from this workspace.
