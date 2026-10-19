@@ -348,11 +348,17 @@ internal static class Helper
         if (h.ToInt32() <= 0)
         {
 #if PORTABLE_SINGLE_FILE
-            portableHelperProcessId = Launch.CreateProcessInInputDesktopSession(
-                $"\"{Application.ExecutablePath}\"",
-                PortableApplication.ClipboardHelperArgument,
-                WinAPI.GetInputDesktop(),
-                0);
+            try
+            {
+                portableHelperProcessId = PortableClipboardHelperLaunch.Start();
+            }
+            catch (Exception)
+            {
+                // Keep the input app running if Windows cannot create a verified
+                // normal-user drop target. Do not retry with an elevated helper.
+                portableHelperProcessId = 0;
+                Logger.Log("Unable to start the clipboard helper in the current user's normal desktop context.");
+            }
 
             for (int attempt = 0; attempt < 20 && h.ToInt32() <= 0; attempt++)
             {
