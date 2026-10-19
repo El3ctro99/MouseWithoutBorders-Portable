@@ -31,7 +31,8 @@ internal static class InitAndCleanup
     internal static int PleaseReopenSocket;
     internal static bool ReopenSocketDueToReadError;
 
-    private static DateTime LastResumeSuspendTime { get; set; } = DateTime.UtcNow;
+    private static volatile bool notificationsSubscribed;
+    private static int notificationGeneration;
 
     internal static bool InitDone
     {
@@ -138,31 +139,46 @@ internal static class InitAndCleanup
         Encryption.InitEncryption();
         CreateHelperThreads();
 
+        ConnectionRecovery.Start();
+        System.Threading.Interlocked.Increment(ref notificationGeneration);
         SystemEvents.DisplaySettingsChanged += new EventHandler(WinAPI.SystemEvents_DisplaySettingsChanged);
         NetworkChange.NetworkAvailabilityChanged += new NetworkAvailabilityChangedEventHandler(NetworkChange_NetworkAvailabilityChanged);
+        NetworkChange.NetworkAddressChanged += NetworkChange_NetworkAddressChanged;
         SystemEvents.PowerModeChanged += new PowerModeChangedEventHandler(SystemEvents_PowerModeChanged);
-        PleaseReopenSocket = 9;
+        notificationsSubscribed = true;
+        PleaseReopenSocket = SecureDesktopAgent.IsActive ? 9 : 0;
         /* TODO: Telemetry for the matrix? */
     }
 
     private static void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
     {
+        if (!notificationsSubscribed) return;
+        int generation = System.Threading.Volatile.Read(ref notificationGeneration);
         Helper.WndProcCounter++;
 
         if (e.Mode is PowerModes.Resume or PowerModes.Suspend)
         {
+            if (e.Mode == PowerModes.Suspend) ConnectionRecovery.Suspend();
+            else ConnectionRecovery.Resume();
             Logger.TelemetryLogTrace($"{nameof(SystemEvents_PowerModeChanged)}: {e.Mode}", SeverityLevel.Information);
-            try
+            Common.DoSomethingInUIThread(() =>
             {
-                if (!SecureDesktopAgent.IsActive)
+                if (!notificationsSubscribed || generation != System.Threading.Volatile.Read(ref notificationGeneration)) return;
+                try
                 {
-                    if (e.Mode == PowerModes.Suspend) DurableTransfers.Stop();
-                    else { DurableTransfers.ResumeService(); if (DurableTransfers.Jobs.Any(j => !j.Terminal)) TransferCenter.ShowCenter(); }
+                    if (!SecureDesktopAgent.IsActive)
+                    {
+                        if (e.Mode == PowerModes.Suspend) DurableTransfers.Stop();
+                        else
+                        {
+                            DurableTransfers.ResumeService();
+                            if (WinAPI.IsMyDesktopActive() && DurableTransfers.Jobs.Any(j => !j.Terminal)) TransferCenter.ShowCenter();
+                        }
+                    }
                 }
-            }
-            catch (Exception error) { Logger.Log("Transfers: sleep recovery: " + error.Message); }
-            LastResumeSuspendTime = DateTime.UtcNow;
-            MachineStuff.SwitchToMultipleMode(false, true);
+                catch (Exception error) { Logger.Log("Transfers: sleep recovery: " + error.Message); }
+                MachineStuff.SwitchToMultipleMode(false, true);
+            });
         }
     }
 
@@ -203,8 +219,20 @@ internal static class InitAndCleanup
 
     internal static void Cleanup()
     {
+        ConnectionRecovery.Stop();
+        System.Threading.Interlocked.Increment(ref notificationGeneration);
+        if (notificationsSubscribed)
+        {
+            notificationsSubscribed = false;
+            SystemEvents.DisplaySettingsChanged -= WinAPI.SystemEvents_DisplaySettingsChanged;
+            NetworkChange.NetworkAvailabilityChanged -= NetworkChange_NetworkAvailabilityChanged;
+            NetworkChange.NetworkAddressChanged -= NetworkChange_NetworkAddressChanged;
+            SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;
+        }
+
         try
         {
+            Common.MainForm?.StopConnectionPowerNotifications();
             Common.SendByeBye();
 
             // UnhookClipboard();
@@ -261,9 +289,16 @@ internal static class InitAndCleanup
 
     private static void NetworkChange_NetworkAvailabilityChanged(object sender, NetworkAvailabilityEventArgs e)
     {
+        if (!notificationsSubscribed) return;
         Logger.LogDebug("NetworkAvailabilityEventArgs.IsAvailable: " + e.IsAvailable.ToString(CultureInfo.InvariantCulture));
         Helper.WndProcCounter++;
-        ScheduleReopenSocketsDueToNetworkChanges(!e.IsAvailable);
+        if (SecureDesktopAgent.IsActive) ScheduleReopenSocketsDueToNetworkChanges(!e.IsAvailable);
+        else ConnectionRecovery.NetworkChanged();
+    }
+
+    private static void NetworkChange_NetworkAddressChanged(object sender, EventArgs e)
+    {
+        if (notificationsSubscribed) ConnectionRecovery.NetworkChanged();
     }
 
     private static void ScheduleReopenSocketsDueToNetworkChanges(bool closeSockets = true)

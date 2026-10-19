@@ -173,8 +173,9 @@ namespace MouseWithoutBorders.Class
         }
 
         private static bool firstRun;
-        private readonly long connectTimeout;
+        private readonly PeerConnectionAttempts peerAttempts = new();
         private volatile bool closed;
+        internal bool IsClosed => closed;
         private static int restartCount;
 
         internal SocketStuff(int port, bool byUser)
@@ -274,7 +275,6 @@ namespace MouseWithoutBorders.Class
                 }
             }
 
-            connectTimeout = Common.GetTick() + (CONNECT_TIMEOUT / 2);
             Exception openSocketErr;
 
             /*
@@ -293,6 +293,12 @@ namespace MouseWithoutBorders.Class
 
             if (openSocketErr != null)
             {
+                // Constructor failure must not orphan a message listener if the
+                // second (clipboard) listener failed to bind.
+                closed = true;
+                peerAttempts.Stop();
+                skMessageServer?.Close();
+                skClipboardServer?.Close();
                 if (openSocketErr is SocketException)
                 {
                     errCode = (openSocketErr as SocketException).ErrorCode;
@@ -337,7 +343,9 @@ namespace MouseWithoutBorders.Class
                     }
                 }
 
-                Common.MMSleep(sleepSecs);
+                // Automatic recovery owns the retry backoff; never sleep for
+                // seconds on the UI thread after an automatic bind failure.
+                if (byUser || SecureDesktopAgent.IsActive) Common.MMSleep(sleepSecs);
                 Common.ReleaseSocketMutex();
                 throw new ExpectedSocketException(openSocketErr.Message);
             }
@@ -356,7 +364,11 @@ namespace MouseWithoutBorders.Class
 
         internal void Close(bool sentWait)
         {
-            closed = true;
+            lock (TcpSocketsLock)
+            {
+                closed = true;
+                peerAttempts.Stop();
+            }
             try
             {
                 if (!Common.RunOnScrSaverDesktop)
@@ -902,207 +914,222 @@ namespace MouseWithoutBorders.Class
 
         internal void StartNewTcpClient(string machineName)
         {
-            if (closed)
+            if (closed || !peerAttempts.TryAcquire(machineName, out var attempt))
             {
                 return;
             }
 
             void ClientThread(object obj)
             {
-                // SuppressFlow fixes an issue on service mode, where the helper process can't get enough permissions to be started again.
-                // More details can be found on: https://github.com/microsoft/PowerToys/pull/36892
-                using var asyncFlowControl = ExecutionContext.SuppressFlow();
-
-                if (closed)
+                TcpSk dummyTcp = null;
+                try
                 {
-                    return;
-                }
+                    using var attemptScope = attempt;
+                    // SuppressFlow fixes an issue on service mode, where the helper process can't get enough permissions to be started again.
+                    // More details can be found on: https://github.com/microsoft/PowerToys/pull/36892
+                    using var asyncFlowControl = ExecutionContext.SuppressFlow();
 
-                IPHostEntry host;
-                bool useName2IP = false;
-                List<IPAddress> validAddresses = new();
-                List<IPAddress> validatedAddresses = new();
-                string validAddressesSt = string.Empty;
-
-                // Add a dummy socket to show the status.
-                using Socket dummySocket = new(AddressFamily.Unspecified, SocketType.Stream, ProtocolType.Tcp);
-                TcpSk dummyTcp = AddTcpSocket(true, dummySocket, SocketStatus.Resolving, machineName);
-                if (dummyTcp == null)
-                {
-                    return;
-                }
-
-                Logger.LogDebug("Connecting to: " + machineName);
-
-                if (!string.IsNullOrEmpty(Setting.Values.Name2IP))
-                {
-                    string combinedName2ipList = Setting.Values.Name2IpPolicyList + Separator + Setting.Values.Name2IP;
-                    string[] name2ip = combinedName2ipList.Split(Separator, StringSplitOptions.RemoveEmptyEntries);
-                    string[] nameNip;
-
-                    if (name2ip != null)
+                    if (closed)
                     {
-                        foreach (string st in name2ip)
-                        {
-                            nameNip = st.Split(BlankSeparator, StringSplitOptions.RemoveEmptyEntries);
+                        return;
+                    }
 
-                            if (nameNip != null && nameNip.Length >= 2 && nameNip[0].Trim().Equals(machineName, StringComparison.OrdinalIgnoreCase)
-                                && IPAddress.TryParse(nameNip[1].Trim(), out IPAddress ip) && !validAddressesSt.Contains("[" + ip.ToString() + "]")
-                                )
+                    IPHostEntry host;
+                    bool useName2IP = false;
+                    List<IPAddress> validAddresses = new();
+                    List<IPAddress> validatedAddresses = new();
+                    string validAddressesSt = string.Empty;
+
+                    // Add a dummy socket to show the status.
+                    using Socket dummySocket = new(AddressFamily.Unspecified, SocketType.Stream, ProtocolType.Tcp);
+                    dummyTcp = AddTcpSocket(true, dummySocket, SocketStatus.Resolving, machineName);
+                    if (dummyTcp == null)
+                    {
+                        return;
+                    }
+
+                    Logger.LogDebug("Connecting to: " + machineName);
+
+                    if (!string.IsNullOrEmpty(Setting.Values.Name2IP))
+                    {
+                        string combinedName2ipList = Setting.Values.Name2IpPolicyList + Separator + Setting.Values.Name2IP;
+                        string[] name2ip = combinedName2ipList.Split(Separator, StringSplitOptions.RemoveEmptyEntries);
+                        string[] nameNip;
+
+                        if (name2ip != null)
+                        {
+                            foreach (string st in name2ip)
                             {
-                                validatedAddresses.Add(ip);
+                                nameNip = st.Split(BlankSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+                                if (nameNip != null && nameNip.Length >= 2 && nameNip[0].Trim().Equals(machineName, StringComparison.OrdinalIgnoreCase)
+                                    && IPAddress.TryParse(nameNip[1].Trim(), out IPAddress ip) && !validAddressesSt.Contains("[" + ip.ToString() + "]")
+                                    )
+                                {
+                                    validatedAddresses.Add(ip);
+                                    validAddressesSt += "[" + ip.ToString() + "]";
+                                }
+                            }
+                        }
+
+                        if (validatedAddresses.Count > 0)
+                        {
+                            useName2IP = true;
+
+                            Logger.LogDebug("Using both user-defined Name-to-IP mappings and DNS result for " + machineName);
+
+                            Common.ShowToolTip("Using both user-defined Name-to-IP mappings and DNS result for " + machineName, 3000, ToolTipIcon.Info, false);
+
+                            if (!CheckForSameSubNet(validatedAddresses, machineName))
+                            {
+                                return;
+                            }
+
+                            foreach (IPAddress vip in validatedAddresses)
+                            {
+                                StartNewTcpClientThread(machineName, vip, attempt);
+                            }
+
+                            validatedAddresses.Clear();
+                        }
+                    }
+
+                    try
+                    {
+                        host = Dns.GetHostEntry(machineName);
+                    }
+                    catch (SocketException e)
+                    {
+                        if (closed)
+                        {
+                            return;
+                        }
+
+                        host = null;
+
+                        UpdateTcpSockets(dummyTcp, SocketStatus.Timeout);
+
+                        Common.ShowToolTip(e.Message + ": " + machineName, 10000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
+
+                        Logger.Log($"{nameof(StartNewTcpClient)}.{nameof(Dns.GetHostEntry)}: {e.Message}");
+                    }
+
+                    if (closed)
+                    {
+                        return;
+                    }
+
+                    UpdateTcpSockets(dummyTcp, SocketStatus.NA);
+
+                    if (!MachineStuff.InMachineMatrix(machineName))
+                    {
+                        // While Resolving from name to IP, user may have changed the machine name and clicked on Apply.
+                        return;
+                    }
+
+                    if (host != null)
+                    {
+                        string ipLog = string.Empty;
+
+                        foreach (IPAddress ip in host.AddressList)
+                        {
+                            ipLog += "<" + ip.ToString() + ">";
+
+                            if ((ip.AddressFamily == AddressFamily.InterNetwork || ip.AddressFamily == AddressFamily.InterNetworkV6) && !validAddressesSt.Contains("[" + ip.ToString() + "]"))
+                            {
+                                validAddresses.Add(ip);
                                 validAddressesSt += "[" + ip.ToString() + "]";
+                            }
+                        }
+
+                        Logger.LogDebug(machineName + ipLog);
+                    }
+
+                    if (validAddresses.Count > 0)
+                    {
+                        if (!Setting.Values.ReverseLookup)
+                        {
+                            validatedAddresses = validAddresses;
+                            ClearBadIPs();
+                        }
+                        else
+                        {
+                            foreach (IPAddress ip in validAddresses)
+                            {
+                                if (IsBadIP(machineName, ip))
+                                {
+                                    Logger.Log($"Skip bad IP address: {ip}");
+                                    continue;
+                                }
+
+                                try
+                                {
+                                    // Reverse lookup to validate the IP Address.
+                                    string hn = Dns.GetHostEntry(ip).HostName;
+
+                                    if (hn.StartsWith(machineName, StringComparison.CurrentCultureIgnoreCase) || hn.Equals(ip.ToString(), StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        validatedAddresses.Add(ip);
+                                    }
+                                    else
+                                    {
+                                        Logger.Log($"DNS information of machine not matched: {machineName} => {ip} => {hn}.");
+                                        AddBadIP(machineName, ip);
+                                    }
+                                }
+                                catch (SocketException se)
+                                {
+                                    Logger.Log($"{nameof(StartNewTcpClient)}: DNS information of machine not matched: {machineName} => {ip} => {se.Message}.");
+                                    AddBadIP(machineName, ip);
+                                }
+                                catch (ArgumentException ae)
+                                {
+                                    Logger.Log($"{nameof(StartNewTcpClient)}: DNS information of machine not matched: {machineName} => {ip} => {ae.Message}.");
+                                    AddBadIP(machineName, ip);
+                                }
                             }
                         }
                     }
 
                     if (validatedAddresses.Count > 0)
                     {
-                        useName2IP = true;
-
-                        Logger.LogDebug("Using both user-defined Name-to-IP mappings and DNS result for " + machineName);
-
-                        Common.ShowToolTip("Using both user-defined Name-to-IP mappings and DNS result for " + machineName, 3000, ToolTipIcon.Info, false);
-
                         if (!CheckForSameSubNet(validatedAddresses, machineName))
                         {
                             return;
                         }
 
-                        foreach (IPAddress vip in validatedAddresses)
+                        foreach (IPAddress ip in validatedAddresses)
                         {
-                            StartNewTcpClientThread(machineName, vip);
+                            StartNewTcpClientThread(machineName, ip, attempt);
                         }
-
-                        validatedAddresses.Clear();
-                    }
-                }
-
-                try
-                {
-                    host = Dns.GetHostEntry(machineName);
-                }
-                catch (SocketException e)
-                {
-                    if (closed)
-                    {
-                        return;
-                    }
-
-                    host = null;
-
-                    UpdateTcpSockets(dummyTcp, SocketStatus.Timeout);
-
-                    Common.ShowToolTip(e.Message + ": " + machineName, 10000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
-
-                    Logger.Log($"{nameof(StartNewTcpClient)}.{nameof(Dns.GetHostEntry)}: {e.Message}");
-                }
-
-                if (closed)
-                {
-                    return;
-                }
-
-                UpdateTcpSockets(dummyTcp, SocketStatus.NA);
-
-                if (!MachineStuff.InMachineMatrix(machineName))
-                {
-                    // While Resolving from name to IP, user may have changed the machine name and clicked on Apply.
-                    return;
-                }
-
-                if (host != null)
-                {
-                    string ipLog = string.Empty;
-
-                    foreach (IPAddress ip in host.AddressList)
-                    {
-                        ipLog += "<" + ip.ToString() + ">";
-
-                        if ((ip.AddressFamily == AddressFamily.InterNetwork || ip.AddressFamily == AddressFamily.InterNetworkV6) && !validAddressesSt.Contains("[" + ip.ToString() + "]"))
-                        {
-                            validAddresses.Add(ip);
-                            validAddressesSt += "[" + ip.ToString() + "]";
-                        }
-                    }
-
-                    Logger.LogDebug(machineName + ipLog);
-                }
-
-                if (validAddresses.Count > 0)
-                {
-                    if (!Setting.Values.ReverseLookup)
-                    {
-                        validatedAddresses = validAddresses;
-                        ClearBadIPs();
                     }
                     else
                     {
-                        foreach (IPAddress ip in validAddresses)
+                        Logger.Log("Cannot resolve IPv4 Addresses of machine: " + machineName);
+
+                        if (!useName2IP)
                         {
-                            if (IsBadIP(machineName, ip))
-                            {
-                                Logger.Log($"Skip bad IP address: {ip}");
-                                continue;
-                            }
-
-                            try
-                            {
-                                // Reverse lookup to validate the IP Address.
-                                string hn = Dns.GetHostEntry(ip).HostName;
-
-                                if (hn.StartsWith(machineName, StringComparison.CurrentCultureIgnoreCase) || hn.Equals(ip.ToString(), StringComparison.OrdinalIgnoreCase))
-                                {
-                                    validatedAddresses.Add(ip);
-                                }
-                                else
-                                {
-                                    Logger.Log($"DNS information of machine not matched: {machineName} => {ip} => {hn}.");
-                                    AddBadIP(machineName, ip);
-                                }
-                            }
-                            catch (SocketException se)
-                            {
-                                Logger.Log($"{nameof(StartNewTcpClient)}: DNS information of machine not matched: {machineName} => {ip} => {se.Message}.");
-                                AddBadIP(machineName, ip);
-                            }
-                            catch (ArgumentException ae)
-                            {
-                                Logger.Log($"{nameof(StartNewTcpClient)}: DNS information of machine not matched: {machineName} => {ip} => {ae.Message}.");
-                                AddBadIP(machineName, ip);
-                            }
+                            Common.ShowToolTip($"Cannot resolve IP Address of the remote machine: {machineName}.\r\nPlease fix your DNS or use the Mapping option in the Settings form.", 10000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
                         }
                     }
                 }
-
-                if (validatedAddresses.Count > 0)
+                catch (Exception error) { Logger.Log(error); }
+                finally
                 {
-                    if (!CheckForSameSubNet(validatedAddresses, machineName))
+                    if (dummyTcp != null)
                     {
-                        return;
-                    }
-
-                    foreach (IPAddress ip in validatedAddresses)
-                    {
-                        StartNewTcpClientThread(machineName, ip);
-                    }
-                }
-                else
-                {
-                    Logger.Log("Cannot resolve IPv4 Addresses of machine: " + machineName);
-
-                    if (!useName2IP)
-                    {
-                        Common.ShowToolTip($"Cannot resolve IP Address of the remote machine: {machineName}.\r\nPlease fix your DNS or use the Mapping option in the Settings form.", 10000, ToolTipIcon.Warning, Setting.Values.ShowClipNetStatus);
+                        lock (TcpSocketsLock) { TcpSockets?.Remove(dummyTcp); }
                     }
                 }
             }
 
-            Thread t = new(
-                ClientThread, "StartNewTcpClient." + machineName);
-
-            t.SetApartmentState(ApartmentState.STA);
-            t.Start();
+            try
+            {
+                Thread t = new(ClientThread, "StartNewTcpClient." + machineName);
+                t.SetApartmentState(ApartmentState.STA);
+                t.Start();
+            }
+            catch { attempt.Dispose(); throw; }
         }
 
         private bool CheckForSameSubNet(List<IPAddress> validatedAddresses, string machineName)
@@ -1169,25 +1196,27 @@ namespace MouseWithoutBorders.Class
             }
         }
 
-        private void StartNewTcpClientThread(string machineName, IPAddress ip)
+        private void StartNewTcpClientThread(string machineName, IPAddress ip, PeerConnectionAttempts.Lease attempt)
         {
             if (closed)
             {
                 return;
             }
 
+            var worker = attempt.Fork();
+            if (worker == null) return;
+
             void NewTcpClient()
             {
                 // SuppressFlow fixes an issue on service mode, where the helper process can't get enough permissions to be started again.
                 // More details can be found on: https://github.com/microsoft/PowerToys/pull/36892
-                using var asyncFlowControl = ExecutionContext.SuppressFlow();
-
                 TcpClient tcpClient = null;
                 TcpSk tcp = null;
                 bool protocolStarted = false;
 
                 try
                 {
+                    using var asyncFlowControl = ExecutionContext.SuppressFlow();
                     if (closed)
                     {
                         return;
@@ -1219,13 +1248,9 @@ namespace MouseWithoutBorders.Class
 
                     Logger.LogDebug(string.Format(CultureInfo.CurrentCulture, "=====> Connecting to: {0}:{1}", machineName, ip.ToString()));
 
-                    if (!TcpConnectionRetry.TryConnect(
+                    if (!MessageSocketRecovery.TryConnect(
                         () => tcpClient.Connect(ip, TcpPort + 1),
-                        connectTimeout,
                         () => closed,
-                        Common.GetTick,
-                        () => Environment.TickCount64,
-                        Thread.Sleep,
                         out SocketException connectionError))
                     {
                         if (closed)
@@ -1251,7 +1276,7 @@ namespace MouseWithoutBorders.Class
 
                     // Sending/Receiving packages
                     protocolStarted = true;
-                    MainTCPRoutine(tcp, machineName, true);
+                    MainTCPRoutine(tcp, machineName, true, worker);
                 }
                 catch (ObjectDisposedException e)
                 {
@@ -1290,14 +1315,19 @@ namespace MouseWithoutBorders.Class
                             }
                         }
                     }
+                    worker.Dispose();
                 }
             }
 
-            Thread t = new(NewTcpClient, "TCP Client Thread " + machineName + " " + ip.ToString());
-
-            t.SetApartmentState(ApartmentState.STA);
-            t.Start();
+            try
+            {
+                Thread t = new(NewTcpClient, "TCP Client Thread " + machineName + " " + ip.ToString());
+                t.SetApartmentState(ApartmentState.STA);
+                t.Start();
+            }
+            catch { worker.Dispose(); throw; }
         }
+
 
         private void FlagReopenSocketIfNeeded(Exception e)
         {
@@ -1321,7 +1351,7 @@ namespace MouseWithoutBorders.Class
         internal static readonly string[] Separator = new string[] { "\r\n" };
         internal static readonly char[] BlankSeparator = new char[] { ' ' };
 
-        private void MainTCPRoutine(TcpSk tcp, string machineName, bool isClient)
+        private void MainTCPRoutine(TcpSk tcp, string machineName, bool isClient, PeerConnectionAttempts.Lease attempt = null)
         {
             int packageCount = 0;
             DATA d;
@@ -1340,6 +1370,9 @@ namespace MouseWithoutBorders.Class
                 Logger.LogDebug($"{nameof(MainTCPRoutine)}: The socket could have been closed/disposed by other threads.");
                 return;
             }
+
+            using var handshake = SocketHandshakeDeadline.Start(currentSocket);
+            _ = MessageSocketRecovery.ConfigureKeepAlive(currentSocket);
 
             try
             {
@@ -1499,11 +1532,18 @@ namespace MouseWithoutBorders.Class
                                         return;
                                     }
 
-                                    packageCount = -1; // Trusted
-                                    InvalidKeyFound = false;
-                                    currentTcp.MachineId = (uint)remoteID;
-                                    currentTcp.Status = SocketStatus.Connected;
-                                    UpdateTcpSockets(currentTcp, SocketStatus.Connected);
+                                    lock (TcpSocketsLock)
+                                    {
+                                        // Serialize authentication with owner Close, so a late
+                                        // handshake cannot revive an already released owner.
+                                        if (closed || !handshake.TryAuthenticate()) break;
+                                        packageCount = -1; // Trusted
+                                        InvalidKeyFound = false;
+                                        currentTcp.MachineId = (uint)remoteID;
+                                        currentTcp.Status = SocketStatus.Connected;
+                                        UpdateTcpSockets(currentTcp, SocketStatus.Connected);
+                                        attempt?.Dispose(); // Healthy sockets no longer hold the in-flight lease.
+                                    }
                                     Logger.LogDebug("))))))))))))))) Machine got trusted: " + remoteMachine + ":" + strIP + ", Is client: " + isClient);
 
                                     if (Math.Abs(Common.GetTick() - Common.LastReconnectByHotKeyTime) < 5000)
