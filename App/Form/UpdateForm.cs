@@ -20,14 +20,20 @@ internal sealed class UpdateForm : System.Windows.Forms.Form
     private readonly Button check;
     private readonly Button install;
     private readonly string serviceVersion;
+    private readonly Func<string, CancellationToken, Task<UpdateRelease>> checkForUpdates;
     private CancellationTokenSource operation;
     private UpdateRelease candidate;
     private PortableUpdateApply.PreparedUpdate prepared;
     private bool quitting;
     private bool manualInstallRequired;
 
-    internal UpdateForm()
+    internal UpdateForm() : this(ManualUpdates.CheckCandidateAsync)
     {
+    }
+
+    internal UpdateForm(Func<string, CancellationToken, Task<UpdateRelease>> checkForUpdates)
+    {
+        this.checkForUpdates = checkForUpdates ?? throw new ArgumentNullException(nameof(checkForUpdates));
         Text = "Updates — Mouse Without Borders";
         StartPosition = FormStartPosition.CenterParent;
         ShowInTaskbar = false;
@@ -111,7 +117,7 @@ internal sealed class UpdateForm : System.Windows.Forms.Form
         status.Text = "Checking GitHub…";
         try
         {
-            var found = await ManualUpdates.CheckCandidateAsync(Application.ProductVersion, cancellation.Token);
+            var found = await checkForUpdates(Application.ProductVersion, cancellation.Token);
             if (IsDisposed) return;
             candidate = found;
             status.Text = found == null
