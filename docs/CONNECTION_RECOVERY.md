@@ -48,7 +48,10 @@ Repeated failures of the same already missing peer do not reset that backoff.
 An owner-local attempt lease prevents duplicate DNS/connect/handshake work for
 the same peer, and late workers from a closed owner cannot join its replacement.
 
-Address changes invalidate MWB's in-memory rejected-address cache. They do not
+Address changes and each eligible scheduled peer retry invalidate MWB's in-memory
+rejected-address cache, so a temporary reverse-DNS failure can recover even
+without another Windows network notification. Reverse lookup and authentication
+are still required when enabled. These retries do not
 edit user name/IP mappings, flush the Windows DNS cache, change the shared key or
 modify the machine layout. Successful recovery still requires a valid peer
 address, matching authentication and an allowed network path.
@@ -115,8 +118,8 @@ Record the tested source revision, normal-app EXE hash, versions on both PCs and
 the separately installed service version with the results. Do not include real
 pairing keys, private service profiles or transfer journals in public artifacts.
 
-The local self-contained x64 EXE is 88,171,931 bytes, SHA-256
-`637C01155A03A4AD05C2E3C581FDA4F60AF3DEB5672F66079B3DC3B152BE047F`.
+The local self-contained x64 EXE is 88,171,923 bytes, SHA-256
+`99E428D9B9B2D956936D17DA2900A2E51B4BDEB743B2C0B430512D3EF898C20B`.
 The 305 targeted checks above are not a claim that the full inherited suite
 passes. Known inherited locale/visual failures remain outside this validation.
 Private local logs and TRX files are under `artifacts/reconnect-preview6/`.

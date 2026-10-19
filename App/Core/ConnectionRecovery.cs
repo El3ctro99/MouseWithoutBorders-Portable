@@ -117,6 +117,9 @@ internal static class ConnectionRecovery
         {
             // UpdateTCPClients starts work only for missing peers. It does not
             // close a healthy peer, listener, clipboard channel or input hook.
+            // Retry prior PTR failures too: DNS may become ready after the last
+            // network event. Authentication and reverse lookup still run.
+            SocketStuff.ClearBadIPs();
             MachineStuff.UpdateClientSockets("ConnectionRecovery");
         }
     }
