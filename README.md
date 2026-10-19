@@ -4,7 +4,10 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.6:** Missing peers are retried continuously after network changes,
+> **1.2.0-preview.7:** An elevated app starts its clipboard helper with the same
+> user's normal permissions so ordinary Explorer can offer dragged files.
+> See [helper permission checks and validation](docs/CLIPBOARD_HELPER_CONTEXT.md).
+> Preview 6 retries missing peers continuously after network changes,
 > display wake and sleep/resume. Healthy links remain open during ordinary
 > network/display notifications. See [recovery behavior and validation](docs/CONNECTION_RECOVERY.md).
 > Preview 5 adds an optional **Run as administrator**

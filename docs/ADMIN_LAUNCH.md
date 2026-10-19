@@ -1,5 +1,10 @@
 # Administrator launch — 1.2.0-preview.5
 
+For the preview 7 change to clipboard-helper permissions, see
+[Clipboard helper permissions](CLIPBOARD_HELPER_CONTEXT.md). The preview 5
+validation below is a historical record; its helper inherited administrator
+permissions, and Explorer drag/drop was not accepted in that test.
+
 Preview 5 adds an optional **Run as administrator** launch choice in
 **Settings → Installation**, with a separate indication of the current process's
 actual permission status. The choice is **off by default** and applies to the
