@@ -8,9 +8,9 @@ sharing while the operating system or network adapter is suspended.
 
 On October 19, 2026 (Europe/Budapest), the Release x64 build, single-file publish,
 74 recovery/connection checks and 231 existing regressions passed locally.
-Physical two-PC display-off, sleep/wake, network-change and UAC acceptance for
-this preview remain pending. Earlier preview results do not establish this
-preview's physical connection behavior.
+The user confirmed remote pointer and keyboard control after display-off/on
+without a manual reconnect; the screen-off duration was not recorded. Actual
+sleep/wake, network-change and UAC acceptance for this preview remain pending.
 
 ## Notifications and retry policy
 
@@ -112,7 +112,8 @@ reconnection; existing preview.3 acceptance is recorded in
 | Repository layout and release metadata | Three-project check and 3 metadata cases passed |
 | Local installation on the affected laptop | Passed; reviewed EXE hash installed, main app and clipboard helper running at High integrity; preview.5 EXE retained for rollback |
 | Ordinary desktop remote pointer and keyboard after installation | User confirmed both working between the physical PCs |
-| Physical display-off, sleep/wake and network-change acceptance | Pending |
+| Physical display-off/on with remote pointer and keyboard | User confirmed operation without manual reconnect; duration not recorded |
+| Ten-minute display-off, actual sleep/wake and network-change acceptance | Pending |
 | Protected-UAC handoff with the existing preview.3 service | Pending |
 
 Record the tested source revision, normal-app EXE hash, versions on both PCs and
@@ -135,6 +136,13 @@ The protected preview.3 agent's checksum remained unchanged, its service stayed
 running, and `EnableLUA`/`PromptOnSecureDesktop` remained enabled. This baseline
 does not establish long display-off, sleep/wake, clipboard/file-transfer or
 protected-UAC acceptance for preview.6.
+
+On October 19, 2026, the user also confirmed a display-off/on test: after the
+laptop display came back on, the other PC's mouse and keyboard worked without
+manually reconnecting MWB. The user identified this as display power only.
+The duration and whether the TCP connection had remained open were not recorded.
+Actual system sleep/resume, clipboard/file transfers during this test and
+network-adapter changes remain unverified.
 
 ## Two-PC acceptance checklist
 
@@ -163,6 +171,7 @@ protected-UAC acceptance for preview.6.
    event burst followed by Exit; no late callback should recreate sockets or
    application windows after shutdown.
 
-These are acceptance steps, not completed results. A localhost socket test or a
+See the validation record for completed results; the checklist includes pending
+cases. A localhost socket test or a
 synthetic notification does not demonstrate actual laptop sleep, NIC recovery,
 peer authentication or protected-desktop input.
