@@ -361,12 +361,15 @@ namespace MouseWithoutBorders
                 return;
             }
 
+            if (!SecureDesktopAgent.IsActive && !ConnectionRecovery.IsRunning) return;
+
             busy = true;
 
             try
             {
                 if (!WinAPI.IsMyDesktopActive() || Common.CurrentProcess.SessionId != NativeMethods.WTSGetActiveConsoleSessionId())
                 {
+                    ConnectionRecovery.DesktopInactive();
                     myDesktopNotActive = true;
 
                     SocketStuff sk = Common.Sk;
@@ -400,7 +403,9 @@ namespace MouseWithoutBorders
                 }
                 else
                 {
-                    if (Common.Sk == null)
+                    ConnectionRecovery.DesktopActivated();
+                    if (!SecureDesktopAgent.IsActive && Common.Sk?.IsClosed == true) Common.Sk = null;
+                    if (Common.Sk == null && ConnectionRecovery.CanAttemptListener())
                     {
                         if (!Common.SecondOpenSocketTry)
                         {
@@ -438,7 +443,9 @@ namespace MouseWithoutBorders
                             }
                         }
 
+                        ConnectionRecovery.ListenerAttemptStarting();
                         Common.ReopenSockets(false);
+                        ConnectionRecovery.ListenerAttemptCompleted(Common.Sk != null && !Common.Sk.IsClosed);
                         Common.SecondOpenSocketTry = true;
 
                         if (Common.Sk != null)
@@ -468,9 +475,11 @@ namespace MouseWithoutBorders
 #endif
                     }
 
+                    ConnectionRecovery.MaintainActiveDesktop();
+
                     if ((count % 2) == 0)
                     {
-                        if (InitAndCleanup.PleaseReopenSocket == 10 || (InitAndCleanup.PleaseReopenSocket > 0 && count > 0 && count % 300 == 0))
+                        if (SecureDesktopAgent.IsActive && (InitAndCleanup.PleaseReopenSocket == 10 || (InitAndCleanup.PleaseReopenSocket > 0 && count > 0 && count % 300 == 0)))
                         {
                             if (!Common.AtLeastOneSocketEstablished() || InitAndCleanup.PleaseReopenSocket == 10)
                             {
@@ -498,12 +507,17 @@ namespace MouseWithoutBorders
                         if (InitAndCleanup.PleaseReopenSocket == InitAndCleanup.REOPEN_WHEN_HOTKEY)
                         {
                             InitAndCleanup.PleaseReopenSocket = 0;
+                            ConnectionRecovery.ListenerAttemptStarting();
                             Common.ReopenSockets(true);
+                            ConnectionRecovery.ListenerAttemptCompleted(Common.Sk != null && !Common.Sk.IsClosed);
                         }
                         else if (InitAndCleanup.PleaseReopenSocket == InitAndCleanup.REOPEN_WHEN_WSAECONNRESET)
                         {
                             InitAndCleanup.PleaseReopenSocket = 0;
-                            MachineStuff.UpdateClientSockets("REOPEN_WHEN_WSAECONNRESET");
+                            // Ordinary recovery already checks missing peers on
+                            // every tick; failure callbacks must not bypass its
+                            // backoff. Preserve the protected agent's handoff.
+                            if (SecureDesktopAgent.IsActive) MachineStuff.UpdateClientSockets("REOPEN_WHEN_WSAECONNRESET");
                         }
 
                         if (Common.RunOnLogonDesktop)
@@ -580,7 +594,7 @@ namespace MouseWithoutBorders
                     // if (Common.RunOnLogonDesktop) ShowMouseWithoutBordersUiOnWinLogonDesktop(false);
 #endif
                     WinAPI.CheckForDesktopSwitchEvent(true);
-                    MachineStuff.UpdateClientSockets("helperTimer_Tick"); // Sockets may be closed by the remote host when both machines switch desktop at the same time.
+                    if (SecureDesktopAgent.IsActive) MachineStuff.UpdateClientSockets("helperTimer_Tick");
                 }
 
                 count++;
@@ -780,6 +794,7 @@ namespace MouseWithoutBorders
         // private bool checkClipboard = false;
         protected override void WndProc(ref Message m)
         {
+            if (TryHandleConnectionPowerMessage(ref m)) return;
             // No user-defined helper, transfer or settings messages on Winlogon.
             if (SecureDesktopAgent.IsActive && m.Msg is NativeMethods.WM_SHOW_DRAG_DROP
                 or NativeMethods.WM_HIDE_DRAG_DROP or NativeMethods.WM_HIDE_DD_HELPER

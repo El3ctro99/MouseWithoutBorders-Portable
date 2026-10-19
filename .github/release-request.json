@@ -1,25 +1,26 @@
 {
-  "tag": "mwb-v1.2.0-preview.5",
-  "title": "Mouse Without Borders Portable 1.2.0-preview.5",
+  "tag": "mwb-v1.2.0-preview.6",
+  "title": "Mouse Without Borders Portable 1.2.0-preview.6",
   "prerelease": true,
-  "summary": "Adds an optional administrator-launch setting for this Windows account and exact EXE location; new copies continue to run normally by default.",
+  "summary": "Restores missing peer connections after display wake, sleep and network address changes, with continuous bounded retries.",
   "changes": [
-    "Settings > Installation adds Run as administrator and displays the actual permissions of the current process separately from the next-launch choice.",
-    "The local choice defaults off and is stored per current Windows user and exact EXE path, outside portable pairing preferences.",
-    "An opted-in ordinary launch requests the Windows UAC approval for only its own EXE, with no forwarded arguments. Cancellation or startup errors leave the ordinary copy running.",
-    "Clipboard, installer, updater and validated secure-desktop modes retain their existing routing and tokens; the service and Windows UAC policy are unchanged.",
-    "The existing Start with Windows choice remains independent. No scheduled elevated task or RUNASADMIN compatibility override is created."
+    "Network address changes and display-on notifications schedule coalesced recovery, even when Windows still reports an available network.",
+    "Missing peers are retried continuously with bounded backoff. One healthy connection no longer hides another missing peer.",
+    "A real resume refreshes socket ownership once; ordinary display-off, display-on and address-change events preserve healthy connections and input hooks.",
+    "Per-peer attempt leases cover DNS, connection and handshake work. Each connection attempt receives a fresh monotonic retry budget.",
+    "Message sockets use TCP keepalive to detect silent disconnections; established idle peers have no application receive-idle timeout.",
+    "Retains the optional administrator-launch setting introduced in preview 5. The protected-service payload and Windows security/power settings are not modified."
   ],
   "testing": [
-    "Release x64 build and single-file publish passed; 125 focused elevation, UI and updater tests plus 65 existing regressions passed locally on Windows.",
-    "The administrator controls were rendered and visually inspected at normal and larger text sizes.",
-    "Finish transfers and exit MWB before a manual EXE replacement; keep adjacent preferences and recovery files. A same-path update preserves the local administrator-launch choice.",
-    "See docs/ADMIN_LAUNCH.md for exact real-UAC, peer-input, startup and clipboard validation limits."
+    "Release x64 build and self-contained single-file publish passed. 74 recovery/connection checks and 231 existing elevation, service, updater, settings, encryption and transfer regressions passed locally.",
+    "The three-project repository check and 3 release metadata tests passed. This is focused validation, not full inherited-suite success.",
+    "See docs/CONNECTION_RECOVERY.md for exact local automated results and pending physical two-PC acceptance.",
+    "Finish active transfers before replacing the EXE. Keep adjacent preferences and recovery files; a same-path update retains administrator-launch choice."
   ],
   "known_limitations": [
-    "Unsigned Windows x64 preview. Administrator mode elevates the whole ordinary application, including input received from peers; it is an explicit local opt-in.",
-    "Windows approval is still required. Cancelling UAC continues without administrator privileges, and already-running processes are not demoted by clearing the checkbox.",
-    "Explorer drag/drop, clipboard and file-transfer behavior across integrity levels require real-PC verification. Sign-in startup has not been established by a live logoff/logon test.",
-    "Protected UAC and sign-in input still use the separate optional service. Existing updater path restrictions and inherited full-suite failures remain documented."
+    "Windows x64 preview. Real display-off, sleep/wake and adapter-change behavior requires physical acceptance on the affected machines.",
+    "Windows can suspend desktop apps and networking during Modern Standby; reconnect runs when the application and network are available again.",
+    "Recovery does not automatically resume user-paused file-transfer jobs or bypass a mismatched security key.",
+    "Existing updater path restrictions and inherited full-suite failures remain documented."
   ]
 }

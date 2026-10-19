@@ -4,7 +4,10 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.5:** Settings → Installation adds an optional **Run as administrator**
+> **1.2.0-preview.6:** Missing peers are retried continuously after network changes,
+> display wake and sleep/resume. Healthy links remain open during ordinary
+> network/display notifications. See [recovery behavior and validation](docs/CONNECTION_RECOVERY.md).
+> Preview 5 adds an optional **Run as administrator**
 > launch choice for this Windows user and this exact EXE location. It is off by
 > default and uses the normal Windows UAC approval on the next launch. See
 > [administrator launch and its limits](docs/ADMIN_LAUNCH.md).
@@ -134,6 +137,7 @@ The upstream GitHub Actions workflow builds Windows Release x64, runs the unit s
 - [What's new in this fork's 1.2.0-preview.3](docs/RELEASE_1.2.0-preview.3.md)
 - [Preview 4 updater behavior, validation and limits](docs/UPDATER_VALIDATION.md)
 - [Preview 5 administrator launch and validation](docs/ADMIN_LAUNCH.md)
+- [Preview 6 connection recovery and validation](docs/CONNECTION_RECOVERY.md)
 - [Upstream 1.1.1 and upgrading](docs/RELEASE_1.1.1.md)
 - [File transfers, queue controls, and recovery](docs/FILE_TRANSFERS.md)
 - [Detailed extraction and product status](docs/README.md)
