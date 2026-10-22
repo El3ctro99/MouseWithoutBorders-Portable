@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MouseWithoutBorders.Class;
 using MouseWithoutBorders.Core;
@@ -54,7 +55,7 @@ internal partial class FrmMatrix
             Status.Name = "installationAdministratorStatus";
             Help = Explanation("Administrator mode lets MWB click elevated windows such as Task Manager. "
                 + "The entire normal app, including input received from another PC, then runs with administrator privileges. "
-                + "Windows asks for UAC approval at each launch, including sign-in if Start with Windows is enabled. "
+                + "Without approved administrator launch, Windows asks for UAC approval at each launch, including sign-in if Start with Windows is enabled. "
                 + "This choice applies on the next launch and is saved only for this Windows user and this EXE location, separately from portable preferences. "
                 + "The optional Secure Desktop service for protected UAC prompts is separate.");
             Help.Name = "installationAdministratorHelp";
@@ -109,6 +110,91 @@ internal partial class FrmMatrix
             Status.Text += storedPreference
                 ? " Administrator launch is on for the next launch."
                 : " Administrator launch is off for the next launch.";
+        }
+    }
+
+    internal sealed class ApprovedAdministratorLaunchOptions
+    {
+        private readonly Func<bool> readEnabled;
+        private readonly Func<bool> isAvailable;
+        private readonly Func<bool, Task<bool>> configure;
+        private readonly Action<Exception> showError;
+        private bool busy;
+        internal SettingsStack Content { get; }
+        internal Label Status { get; }
+        internal Label Help { get; }
+        internal Button SetUp { get; }
+        internal Button Remove { get; }
+
+        internal ApprovedAdministratorLaunchOptions(Func<bool> readEnabled, Func<bool> isAvailable,
+            Func<bool, Task<bool>> configure, Action<Exception> showError)
+        {
+            this.readEnabled = readEnabled;
+            this.isAvailable = isAvailable;
+            this.configure = configure;
+            this.showError = showError;
+            Content = Section("Approved administrator launch");
+            Content.Name = "installationApprovedAdministratorSection";
+            Status = Explanation("");
+            Status.Name = "installationApprovedAdministratorStatus";
+            Help = Explanation("Approve setup once to start MWB as administrator without another prompt at each launch. "
+                + "Updates to this protected copy require approval. This is separate from the Secure Desktop service.");
+            Help.Name = "installationApprovedAdministratorHelp";
+            SetUp = SettingsButton("Set up approved launch…", async (_, _) => await ConfigureAsync(true));
+            SetUp.Name = "installationApprovedAdministratorSetUp";
+            Remove = SettingsButton("Remove approved launch…", async (_, _) => await ConfigureAsync(false));
+            Remove.Name = "installationApprovedAdministratorRemove";
+            Content.Add(Status); Content.Add(Help); Content.Add(Actions(SetUp, Remove));
+            Refresh();
+        }
+
+        internal void Refresh()
+        {
+            if (busy || Content.IsDisposed) return;
+            SetUp.Enabled = Remove.Enabled = false;
+            try
+            {
+                bool enabled = readEnabled();
+                Status.Text = enabled ? "Approved administrator launch is configured." : "Approved administrator launch is off.";
+                SetUp.Text = enabled ? "Update approved launch…" : "Set up approved launch…";
+                // Removing an existing approval must remain possible after the
+                // ordinary administrator preference is turned off.
+                Remove.Enabled = enabled;
+                bool available = isAvailable();
+                if (!available)
+                    Status.Text += " Turn on Run as administrator and save this copy's preferences to set up or update this launch method.";
+                SetUp.Enabled = available;
+            }
+            catch (Exception error)
+            {
+                Status.Text = "Could not read approved administrator launch status: " + error.Message;
+            }
+        }
+
+        private async Task ConfigureAsync(bool enable)
+        {
+            if (busy || Content.IsDisposed || !(enable ? SetUp.Enabled : Remove.Enabled)) return;
+            busy = true;
+            SetUp.Enabled = Remove.Enabled = false;
+            Status.Text = enable ? "Setting up approved administrator launch…" : "Removing approved administrator launch…";
+            bool completed = false;
+            bool failed = false;
+            try { completed = await configure(enable); }
+            catch (Exception error)
+            {
+                failed = true;
+                if (!Content.IsDisposed) showError(error);
+            }
+            finally
+            {
+                busy = false;
+                if (!Content.IsDisposed)
+                {
+                    Refresh();
+                    if (!completed && !failed)
+                        Status.Text += enable ? " Setup was not completed." : " Removal was not completed.";
+                }
+            }
         }
     }
 
@@ -430,7 +516,7 @@ internal partial class FrmMatrix
         content.Add(Explanation(PortableApplication.CurrentSettingsPath));
         content.Add(SettingsButton("Open folder", (_, _) =>
         {
-            try { Process.Start(new ProcessStartInfo(Path.GetDirectoryName(PortableApplication.CurrentExecutablePath)) { UseShellExecute = true }); }
+            try { Process.Start(new ProcessStartInfo(Path.GetDirectoryName(PortableApplication.CurrentSettingsPath)) { UseShellExecute = true }); }
             catch (Exception error) { SettingsError(error); }
         }));
         var administrator = new AdministratorLaunchOptions(PortableElevation.IsEnabled, PortableElevation.SetEnabled,
@@ -438,6 +524,12 @@ internal partial class FrmMatrix
         SetOptionTip(administrator.Choice, "Off", administrator.Help.Text);
         content.Add(administrator.Content);
         tab.Enter += (_, _) => administrator.Refresh();
+        var approvedAdministrator = new ApprovedAdministratorLaunchOptions(PortableApprovedLaunch.IsEnabled,
+            () => PortableApprovedLaunch.IsSupported && PortableElevation.IsEnabled() && File.Exists(PortableApplication.CurrentSettingsPath),
+            enabled => PortableApprovedLaunch.ConfigureAsync(this, enabled), SettingsError);
+        content.Add(approvedAdministrator.Content);
+        administrator.Choice.CheckedChanged += (_, _) => approvedAdministrator.Refresh();
+        tab.Enter += (_, _) => approvedAdministrator.Refresh();
         if (PortableApplication.IsInstalledCopy)
         {
             installationStartup = new CheckBox { Text = "Start with Windows", Name = "installationStartup" };

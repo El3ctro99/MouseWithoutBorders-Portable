@@ -1,5 +1,9 @@
 # Administrator launch — 1.2.0-preview.5
 
+Preview 9 adds a separate, default-off [approved administrator launch mode](APPROVED_ADMIN_LAUNCH.md)
+for users who choose one setup approval instead of approval on every launch.
+The per-launch behavior below remains the ordinary mode.
+
 For the preview 7 change to clipboard-helper permissions, see
 [Clipboard helper permissions](CLIPBOARD_HELPER_CONTEXT.md). The preview 5
 validation below is a historical record; its helper inherited administrator

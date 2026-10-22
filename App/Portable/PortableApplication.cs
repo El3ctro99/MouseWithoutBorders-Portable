@@ -34,7 +34,7 @@ internal static class PortableApplication
 
     internal static string CurrentExecutablePath => Path.GetFullPath(Application.ExecutablePath);
 
-    internal static string CurrentSettingsPath => Path.Combine(AppContext.BaseDirectory, SettingsFileName);
+    internal static string CurrentSettingsPath => Path.Combine(PortableApprovedLaunch.SettingsDirectory, SettingsFileName);
 
     internal static string DefaultInstallDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -128,7 +128,7 @@ internal static class PortableApplication
                 return false;
             }
 
-            return command.Trim().Trim('"').Equals(CurrentExecutablePath, StringComparison.OrdinalIgnoreCase);
+            return command.Trim().Trim('"').Equals(PortableApprovedLaunch.PreferenceExecutablePath, StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception)
         {
@@ -139,11 +139,13 @@ internal static class PortableApplication
 
     internal static void SetStartWithWindows(bool enabled)
     {
-        SetStartWithWindows(enabled, CurrentExecutablePath);
+        SetStartWithWindows(enabled, PortableApprovedLaunch.PreferenceExecutablePath);
     }
 
     internal static bool PromptToInstallCurrentPortableCopy(IWin32Window owner)
     {
+        if (PortableApprovedLaunch.IsActive)
+            throw new InvalidOperationException("Close the approved copy and reopen the ordinary portable copy before changing its installation.");
         if (IsInstalledCopy)
         {
             return true;
@@ -183,6 +185,8 @@ internal static class PortableApplication
 
     internal static void BeginUninstall(bool deletePreferences)
     {
+        if (PortableApprovedLaunch.IsActive || PortableApprovedLaunch.IsEnabled())
+            throw new InvalidOperationException("Remove approved administrator launch first, then close MWB and reopen the ordinary installed copy before uninstalling.");
         RemoveStartupEntryIfOwnedBy(CurrentExecutablePath);
         RemoveStartMenuShortcut();
         RemoveDesktopShortcut();
@@ -237,6 +241,8 @@ internal static class PortableApplication
         bool preserveCurrentPreferences,
         bool restartCurrentProcess)
     {
+        if (PortableApprovedLaunch.IsActive)
+            throw new InvalidOperationException("The approved administrator copy cannot install or launch a user-writable replacement. Reopen the ordinary copy first.");
         var installDirectory = Path.GetFullPath(Environment.ExpandEnvironmentVariables(requestedDirectory));
         Directory.CreateDirectory(installDirectory);
         AssertDirectoryIsWritable(installDirectory);
