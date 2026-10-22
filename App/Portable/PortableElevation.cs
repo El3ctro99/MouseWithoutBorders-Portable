@@ -29,7 +29,7 @@ internal static class PortableElevation
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RegistryPath, writable: false);
-            return key != null && IsEnabled(key, PortableApplication.CurrentExecutablePath);
+            return key != null && IsEnabled(key, PortableApprovedLaunch.PreferenceExecutablePath);
         }
         catch (Exception)
         {
@@ -45,14 +45,14 @@ internal static class PortableElevation
         {
             using var key = Registry.CurrentUser.CreateSubKey(RegistryPath, writable: true)
                 ?? throw new IOException("Windows did not provide access to the local administrator-launch setting.");
-            SetEnabled(key, PortableApplication.CurrentExecutablePath, enabled: true);
+            SetEnabled(key, PortableApprovedLaunch.PreferenceExecutablePath, enabled: true);
         }
         else
         {
             // Do not create a key while disabling a missing choice, and leave all
             // other executable-path choices and unrelated values untouched.
             using var key = Registry.CurrentUser.OpenSubKey(RegistryPath, writable: true);
-            if (key != null) SetEnabled(key, PortableApplication.CurrentExecutablePath, enabled: false);
+            if (key != null) SetEnabled(key, PortableApprovedLaunch.PreferenceExecutablePath, enabled: false);
         }
     }
 

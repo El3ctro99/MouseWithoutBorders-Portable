@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 & (Join-Path $PSScriptRoot 'validate-icon.ps1')
+if ($Platform -eq 'x64') { & (Join-Path $PSScriptRoot 'build-approved-launcher.ps1') }
 
 $msbuild = Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue
 if (-not $msbuild) {

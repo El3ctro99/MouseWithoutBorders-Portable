@@ -94,6 +94,8 @@ namespace MouseWithoutBorders.Class
                 }
                 if (PortableInstallLifecycle.RunLaunchHelper(startupArgs)) return;
 
+                if (PortableApprovedLaunch.HandleSpecialInvocation(startupArgs)) return;
+
                 if (!PortableApplication.PrepareFirstLaunch())
                 {
                     return;
@@ -101,6 +103,7 @@ namespace MouseWithoutBorders.Class
 
                 // Elevate only an ordinary launch after all helper/service modes
                 // have been routed, before settings, input or networking start.
+                if (PortableApprovedLaunch.TryRelaunch(startupArgs)) return;
                 if (PortableElevation.TryRelaunchElevated(startupArgs)) return;
 
                 // Do not touch Setting.Values until the first-launch choice has created
@@ -149,6 +152,7 @@ namespace MouseWithoutBorders.Class
 #if PORTABLE_SINGLE_FILE
                 serviceMode = SecureDesktopAgent.IsActive;
                 if (serviceMode) firstArg = "winlogon";
+                if (PortableApprovedLaunch.IsActive) firstArg = string.Empty;
 #endif
 
                 if (PowerToys.GPOWrapper.GPOWrapper.GetConfiguredMwbAllowServiceModeValue() == PowerToys.GPOWrapper.GpoRuleConfigured.Disabled)

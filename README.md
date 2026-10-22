@@ -4,7 +4,10 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.8:** The update dialog keeps the About window's topmost state
+> **1.2.0-preview.9:** Optional approved administrator launch can use a protected
+> copy and a per-user task after one setup approval. It is off by default.
+> See [setup, removal and validation](docs/APPROVED_ADMIN_LAUNCH.md).
+> Preview 8 keeps the update dialog's topmost state
 > so About cannot cover it. See [dialog validation](docs/UPDATE_DIALOG_VISIBILITY.md).
 > Preview 7 starts an elevated app's clipboard helper with the same
 > user's normal permissions so ordinary Explorer can offer dragged files.
@@ -104,7 +107,7 @@ This elevates the whole ordinary application, including its input, clipboard, ne
 
 The choice is local to the current Windows account and exact EXE path, outside the portable preferences. Replacing the EXE at the same location retains it; copying the folder elsewhere or to another PC does not enable it there. Clearing the checkbox affects the next ordinary launch; an already elevated process remains elevated until it closes, and an updater restart inherits the permissions of the process performing the update. To return to normal permissions, exit and reopen the unchecked copy from ordinary Explorer.
 
-**Start with Windows** remains a separate choice. If enabled, an opted-in copy requests the usual UAC approval when launched at sign-in; there is no silent approval, scheduled administrator task or Windows UAC policy change. Windows drag-and-drop between elevated MWB and ordinary Explorer may be restricted and still requires real-PC verification. See [administrator launch details](docs/ADMIN_LAUNCH.md).
+**Start with Windows** remains a separate choice. Without approved administrator launch, an opted-in copy requests the usual UAC approval when launched at sign-in. Preview 9's optional [approved administrator launch](docs/APPROVED_ADMIN_LAUNCH.md) instead uses a protected copy and a fixed task after one-time Windows approval; it does not change Windows UAC policy. Sign-in startup has not been revalidated in this mode. The [Medium clipboard helper](docs/CLIPBOARD_HELPER_CONTEXT.md) supports ordinary Explorer transfers; laptop-to-desktop drag-and-drop was accepted in preview 7.
 
 ## Check for updates
 
