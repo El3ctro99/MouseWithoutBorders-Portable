@@ -103,8 +103,10 @@ matched, the original preferences remained present, and no protected preferences
 copy was created. An earlier existing Medium instance was closed through its
 authenticated shutdown endpoint before this clean-start verification.
 
-Post-restart two-PC input, clipboard and file acceptance is pending. Sign-in
-startup, lock/unlock and sleep/wake have not been revalidated for this mode.
+After this restart, the user confirmed normal remote mouse control, clicking in
+Task Manager, text clipboard sharing and small-file drag-and-drop between the
+two PCs. Sign-in startup, lock/unlock and sleep/wake have not been revalidated
+for this mode.
 
 The Windows task security model and single-file cache requirements are described
 in [Microsoft's task security documentation](https://learn.microsoft.com/en-us/windows/win32/taskschd/security-contexts-for-running-tasks)
