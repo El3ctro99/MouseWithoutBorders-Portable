@@ -7,6 +7,7 @@ using System.Linq;
 using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 using Microsoft.Win32;
@@ -111,22 +112,25 @@ internal static class InitAndCleanup
             Logger.Log(e.Message);
         }
 
+        InputSimulation.Injector = null;
+        NativeMethods.InjectMouseInputAvailable = false;
         try
         {
             // The protected agent uses native SendInput. WinRT injection may be
             // unavailable on Winlogon and must not prevent the worker starting.
             InputSimulation.Injector = SecureDesktopAgent.IsActive ? null : InputInjector.TryCreate();
-            NativeMethods.InjectMouseInputAvailable = false;
-            if (InputSimulation.Injector != null)
-            {
-                InputSimulation.MoveMouseRelative(0, 0);
-                NativeMethods.InjectMouseInputAvailable = true;
-            }
+            // Do not send a synthetic mouse event during startup. The former
+            // zero-move probe called native SendInput before the message loop
+            // existed and could block the entire application initialization.
+            NativeMethods.InjectMouseInputAvailable = InputSimulation.Injector != null;
         }
-        catch (EntryPointNotFoundException)
+        catch (Exception error) when (error is COMException or EntryPointNotFoundException
+            or DllNotFoundException or TypeLoadException or NotSupportedException)
         {
+            InputSimulation.Injector = null;
             NativeMethods.InjectMouseInputAvailable = false;
-            Logger.Log($"{nameof(NativeMethods.InjectMouseInputAvailable)} = false");
+            Logger.Log("Optional WinRT mouse injection is unavailable; using native input. "
+                + error.GetType().Name + " 0x" + error.HResult.ToString("X8", CultureInfo.InvariantCulture));
         }
 
         bool dummy = Setting.Values.DrawMouseEx;
