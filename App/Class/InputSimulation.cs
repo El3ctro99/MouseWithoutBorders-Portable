@@ -48,62 +48,49 @@ namespace MouseWithoutBorders.Class
             return injectedInput;
         }
 
+        private static readonly InputInjectionRecovery inputInjectionRecovery = new();
+        private static readonly IInputInjectionBackend inputInjectionBackend = new NativeInputInjectionBackend();
+
         private static uint SendInputEx(NativeMethods.INPUT input)
         {
             if (!SecureDesktopAgent.IsCurrentDesktopActive()) return 0;
             Common.PaintCount = 0;
+            return inputInjectionRecovery.SendInput(input, Common.Is64bitOS, inputInjectionBackend);
+        }
 
-            uint rv = 0;
-            if (Common.Is64bitOS)
+        private sealed class NativeInputInjectionBackend : IInputInjectionBackend
+        {
+            public bool WinRtAvailable => NativeMethods.InjectMouseInputAvailable;
+
+            public bool TryInjectMouse(NativeMethods.MOUSEINPUT input)
             {
-                NativeMethods.INPUT64 input64 = default;
-                input64.type = input.type;
-
-                // Keyboard
-                if (input.type == 1)
-                {
-                    input64.ki.wVk = input.ki.wVk;
-                    input64.ki.wScan = input.ki.wScan;
-                    input64.ki.dwFlags = input.ki.dwFlags;
-                    input64.ki.time = input.ki.time;
-                    input64.ki.dwExtraInfo = input.ki.dwExtraInfo;
-                }
-
-                // Mouse
-                else
-                {
-                    input64.mi.dx = input.mi.dx;
-                    input64.mi.dy = input.mi.dy;
-                    input64.mi.dwFlags = input.mi.dwFlags;
-                    input64.mi.mouseData = input.mi.mouseData;
-                    input64.mi.time = input.mi.time;
-                    input64.mi.dwExtraInfo = input.mi.dwExtraInfo;
-                }
-
-                if (input.type == 0 && (input.mi.dwFlags & (int)NativeMethods.MOUSEEVENTF.MOVE) != 0 && NativeMethods.InjectMouseInputAvailable)
-                {
-                    Injector.InjectMouseInput(new[] { MouseInputToInjectedInputMouseInfo(input64.mi) });
-                }
-                else
-                {
-                    NativeMethods.INPUT64[] inputs = { input64 };
-                    rv = NativeMethods.SendInput64(1, inputs, Marshal.SizeOf(input64));
-                }
+                var injector = Injector;
+                if (injector == null) return false;
+                injector.InjectMouseInput(new[] { MouseInputToInjectedInputMouseInfo(input) });
+                return true;
             }
-            else
+
+            public void DisableWinRt(int? failureHResult)
             {
-                if (input.type == 0 && (input.mi.dwFlags & (int)NativeMethods.MOUSEEVENTF.MOVE) != 0 && NativeMethods.InjectMouseInputAvailable)
+                NativeMethods.InjectMouseInputAvailable = false;
+                if (failureHResult.HasValue)
                 {
-                    Injector.InjectMouseInput(new[] { MouseInputToInjectedInputMouseInfo(input.mi) });
-                }
-                else
-                {
-                    NativeMethods.INPUT[] inputs = { input };
-                    rv = NativeMethods.SendInput(1, inputs, Marshal.SizeOf(input));
+                    Logger.Log("WinRT mouse injection failed (HRESULT 0x" + failureHResult.Value.ToString("X8", CultureInfo.InvariantCulture)
+                        + "); using native input.");
                 }
             }
 
-            return rv;
+            public uint SendNative(NativeMethods.INPUT input)
+            {
+                NativeMethods.INPUT[] inputs = { input };
+                return NativeMethods.SendInput(1, inputs, Marshal.SizeOf(input));
+            }
+
+            public uint SendNative64(NativeMethods.INPUT64 input)
+            {
+                NativeMethods.INPUT64[] inputs = { input };
+                return NativeMethods.SendInput64(1, inputs, Marshal.SizeOf(input));
+            }
         }
 
         internal static void SendKey(KEYBDDATA kd)

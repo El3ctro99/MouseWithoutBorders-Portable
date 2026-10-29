@@ -4,7 +4,10 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.9:** Optional approved administrator launch can use a protected
+> **1.2.0-preview.10:** Removes startup mouse probing that could block initialization
+> and falls back to native input after an optional WinRT mouse-injection COM fault.
+> See [freeze recovery and validation](docs/INPUT_INJECTION_RECOVERY.md).
+> Preview 9's optional approved administrator launch can use a protected
 > copy and a per-user task after one setup approval. It is off by default.
 > See [setup, removal and validation](docs/APPROVED_ADMIN_LAUNCH.md).
 > Preview 8 keeps the update dialog's topmost state
