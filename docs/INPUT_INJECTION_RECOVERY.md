@@ -55,6 +55,8 @@ main ran from the protected path at High integrity, with the same account's
 clipboard helper at Medium through Explorer. Source and protected hashes matched
 the tested package; preferences remained in their original location.
 
-Post-install two-PC mouse, keyboard and Task Manager acceptance is pending. The
-full inherited test suite, sleep/wake, lock/unlock and long-running stability are
-not claimed by this validation.
+After installation, the user confirmed that remote mouse and keyboard control
+and clicking in Task Manager work between the two PCs. Clipboard/file transfers
+were not separately rechecked for this fix. The full inherited test suite,
+sleep/wake, lock/unlock and long-running stability are not claimed by this
+validation.
