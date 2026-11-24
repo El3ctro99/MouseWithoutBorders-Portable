@@ -1,25 +1,26 @@
 {
-  "tag": "mwb-v1.2.0-preview.4",
-  "title": "Mouse Without Borders Portable 1.2.0-preview.4",
+  "tag": "mwb-v1.2.0-preview.6",
+  "title": "Mouse Without Borders Portable 1.2.0-preview.6",
   "prerelease": true,
-  "summary": "Adds a manual updater for this fork and identifies El3ctro99 as its current maintainer in About, retaining upstream and original contributor credits.",
+  "summary": "Restores missing peer connections after display wake, sleep and network address changes, with continuous bounded retries.",
   "changes": [
-    "About displays the full preview version and current fork maintainer, with links to this fork's GitHub releases.",
-    "Check for updates selects newer eligible releases from El3ctro99/MouseWithoutBorders-Portable; checks and installation remain user-initiated.",
-    "Downloads validate asset URLs, sizes, SHA-256, architecture and embedded version before a parent-bound helper replaces only the normal EXE.",
-    "Safe shutdown preserves preferences and transfer recovery; failed initial startup triggers an old-EXE restore/restart attempt.",
-    "Private user-profile staging, cancellation, bounded timeouts and cleanup avoid changing the optional protected-UAC service."
+    "Network address changes and display-on notifications schedule coalesced recovery, even when Windows still reports an available network.",
+    "Missing peers are retried continuously with bounded backoff. One healthy connection no longer hides another missing peer.",
+    "A real resume refreshes socket ownership once; ordinary display-off, display-on and address-change events preserve healthy connections and input hooks.",
+    "Per-peer attempt leases cover DNS, connection and handshake work. Each connection attempt receives a fresh monotonic retry budget.",
+    "Message sockets use TCP keepalive to detect silent disconnections; established idle peers have no application receive-idle timeout.",
+    "Retains the optional administrator-launch setting introduced in preview 5. The protected-service payload and Windows security/power settings are not modified."
   ],
   "testing": [
-    "Release x64 build, 102 focused updater/About checks and 65 existing UAC/connection/settings regression checks passed locally on Windows.",
-    "Actual GitHub preview 3 assets passed download, CDN redirect, size, SHA-256, architecture and product-version checks without executing the downloaded payload.",
-    "Use the same normal-app version on each PC. Earlier builds require one manual EXE replacement to acquire the new updater; retain adjacent preferences and recovery files.",
-    "See docs/UPDATER_VALIDATION.md for exact automated, process-fixture and physical-PC evidence limits."
+    "Release x64 build and self-contained single-file publish passed. 74 recovery/connection checks and 231 existing elevation, service, updater, settings, encryption and transfer regressions passed locally.",
+    "The three-project repository check and 3 release metadata tests passed. This is focused validation, not full inherited-suite success.",
+    "See docs/CONNECTION_RECOVERY.md for exact local automated results and pending physical two-PC acceptance.",
+    "Finish active transfers before replacing the EXE. Keep adjacent preferences and recovery files; a same-path update retains administrator-launch choice."
   ],
   "known_limitations": [
-    "Unsigned Windows x64 preview. The three-second process startup check does not establish a working peer connection or detect later failures.",
-    "In-app replacement requires a local user-profile path with safe ownership/permissions throughout its ancestry. Other locations require a manual EXE replacement.",
-    "The optional preview 3 protected-UAC service remains compatible and is not updated by the in-app updater; use its separate package for service changes.",
-    "No new physical two-PC, lock/sign-in or sleep/wake acceptance is claimed. Existing inherited full-suite failures are documented separately."
+    "Windows x64 preview. Real display-off, sleep/wake and adapter-change behavior requires physical acceptance on the affected machines.",
+    "Windows can suspend desktop apps and networking during Modern Standby; reconnect runs when the application and network are available again.",
+    "Recovery does not automatically resume user-paused file-transfer jobs or bypass a mismatched security key.",
+    "Existing updater path restrictions and inherited full-suite failures remain documented."
   ]
 }

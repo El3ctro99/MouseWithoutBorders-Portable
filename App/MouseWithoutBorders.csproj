@@ -47,6 +47,9 @@
   <ItemGroup>
     <Compile Include="..\SecureDesktopService\ServiceTrust.cs" Link="Core\ServiceTrust.cs" />
     <EmbeddedResource Include="ClassicGreen.ico" LogicalName="MouseWithoutBorders.ClassicGreen.ico" />
+    <EmbeddedResource Include="..\artifacts\approved-launch-native\MwbApprovedLauncher.exe"
+                      LogicalName="MouseWithoutBorders.ApprovedLauncher.exe"
+                      Condition="'$(Platform)' == 'x64' and Exists('..\artifacts\approved-launch-native\MwbApprovedLauncher.exe')" />
 
     <Compile Update="Properties\Images.Designer.cs">
       <DesignTime>true</DesignTime>
@@ -66,4 +69,10 @@
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="StreamJsonRpc" />
   </ItemGroup>
+
+  <Target Name="RequireApprovedNativeLauncherForPublish" BeforeTargets="PrepareForPublish"
+          Condition="'$(Platform)' == 'x64'">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)\..\artifacts\approved-launch-native\MwbApprovedLauncher.exe')"
+           Text="Build the approved native launcher with build-approved-launcher.ps1 before publishing x64." />
+  </Target>
 </Project>

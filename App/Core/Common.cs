@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
@@ -900,14 +901,44 @@ internal static class Common
     private static long totalSendTime;
 #endif
 
-    internal static void SkSend(DATA data, uint? exceptDes, bool includeHandShakingSockets)
+    internal static Func<DATA, bool> CaptureClipboardPacketSender()
+    {
+        SocketStuff owner = Sk;
+        if (owner == null) return _ => false;
+        Dictionary<TcpSk, Socket> sockets;
+        lock (owner.TcpSocketsLock)
+        {
+            if (!ReferenceEquals(owner, Sk) || owner.IsClosed) return _ => false;
+            sockets = owner.TcpSockets.Where(t => t != null && t.BackingSocket != null
+                && t.Status == SocketStatus.Connected && t.MachineId != (uint)MachineID
+                && MachineStuff.InMachineMatrix(t.MachineName))
+                .ToDictionary(t => t, t => t.BackingSocket);
+        }
+
+        return packet =>
+        {
+            lock (owner.TcpSocketsLock)
+            {
+                if (!ReferenceEquals(owner, Sk) || owner.IsClosed
+                    || !sockets.Any(entry => owner.TcpSockets.Contains(entry.Key)
+                        && ReferenceEquals(entry.Key.BackingSocket, entry.Value)
+                        && entry.Key.Status == SocketStatus.Connected)) return false;
+            }
+            SkSend(packet, (uint)MachineID, false, owner, sockets);
+            return true;
+        };
+    }
+
+    internal static void SkSend(DATA data, uint? exceptDes, bool includeHandShakingSockets,
+        SocketStuff expectedOwner = null, IReadOnlyDictionary<TcpSk, Socket> expectedSockets = null)
     {
         bool connected = false;
 
-        SocketStuff sk = Sk;
+        SocketStuff sk = expectedOwner ?? Sk;
 
         if (sk != null)
         {
+            if (expectedOwner != null && (!ReferenceEquals(sk, Sk) || sk.IsClosed)) return;
 #if DEBUG
             long startStop = DateTime.Now.Ticks;
             totalSendCount++;
@@ -921,8 +952,11 @@ internal static class Common
 
                 lock (sk.TcpSocketsLock)
                 {
+                    if (expectedOwner != null && (!ReferenceEquals(sk, Sk) || sk.IsClosed)) return;
                     foreach (TcpSk t in sk.TcpSockets)
                     {
+                        if (expectedSockets != null && (t == null || !expectedSockets.TryGetValue(t, out Socket original)
+                            || !ReferenceEquals(t.BackingSocket, original))) continue;
                         if (t != null && t.BackingSocket != null && (t.Status == SocketStatus.Connected || (t.Status == SocketStatus.Handshaking && includeHandShakingSockets)))
                         {
                             if (t.MachineId == (uint)data.Des || (data.Des == ID.ALL && t.MachineId != exceptDes && MachineStuff.InMachineMatrix(t.MachineName)))

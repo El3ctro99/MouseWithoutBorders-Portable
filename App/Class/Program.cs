@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+﻿// Copyright (c) Microsoft Corporation
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -94,10 +94,17 @@ namespace MouseWithoutBorders.Class
                 }
                 if (PortableInstallLifecycle.RunLaunchHelper(startupArgs)) return;
 
+                if (PortableApprovedLaunch.HandleSpecialInvocation(startupArgs)) return;
+
                 if (!PortableApplication.PrepareFirstLaunch())
                 {
                     return;
                 }
+
+                // Elevate only an ordinary launch after all helper/service modes
+                // have been routed, before settings, input or networking start.
+                if (PortableApprovedLaunch.TryRelaunch(startupArgs)) return;
+                if (PortableElevation.TryRelaunchElevated(startupArgs)) return;
 
                 // Do not touch Setting.Values until the first-launch choice has created
                 // (or located) the adjacent preferences file. Initializing it earlier
@@ -145,6 +152,7 @@ namespace MouseWithoutBorders.Class
 #if PORTABLE_SINGLE_FILE
                 serviceMode = SecureDesktopAgent.IsActive;
                 if (serviceMode) firstArg = "winlogon";
+                if (PortableApprovedLaunch.IsActive) firstArg = string.Empty;
 #endif
 
                 if (PowerToys.GPOWrapper.GPOWrapper.GetConfiguredMwbAllowServiceModeValue() == PowerToys.GPOWrapper.GpoRuleConfigured.Disabled)
@@ -332,10 +340,15 @@ namespace MouseWithoutBorders.Class
             void ConnectToMachine(string machineName, string securityKey);
 
             Task<MachineSocketState[]> RequestMachineSocketStateAsync();
+
+            Task<Dictionary<string, long>> RequestClipboardDiagnosticsAsync();
         }
 
         private sealed class SettingsSyncHelper : ISettingsSyncHelper
         {
+            public Task<Dictionary<string, long>> RequestClipboardDiagnosticsAsync() =>
+                Task.FromResult(ClipboardDiagnostics.Snapshot());
+
             public Task<ISettingsSyncHelper.MachineSocketState[]> RequestMachineSocketStateAsync()
             {
                 var machineStates = new Dictionary<string, SocketStatus>();

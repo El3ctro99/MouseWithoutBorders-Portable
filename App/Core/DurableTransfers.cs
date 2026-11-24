@@ -22,7 +22,7 @@ internal static partial class DurableTransfers
     private static bool stopping;
     private static bool ticking;
     private static string journalOverride;
-    private static string JournalPath => journalOverride ?? Path.Combine(AppContext.BaseDirectory, "MouseWithoutBorders.transfers.json");
+    private static string JournalPath => journalOverride ?? Path.Combine(PortableApprovedLaunch.SettingsDirectory, "MouseWithoutBorders.transfers.json");
     internal static void ConfigureForTests(string path, params TransferJob[] jobs)
     {
         queuePeers.Clear(); recoveryError = "";

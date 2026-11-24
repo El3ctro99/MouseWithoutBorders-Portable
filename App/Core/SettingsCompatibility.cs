@@ -434,7 +434,7 @@ namespace Microsoft.PowerToys.Settings.UI.Library
             _ = moduleName;
             if (MouseWithoutBorders.Core.SecureDesktopAgent.IsActive)
                 return MouseWithoutBorders.SecureDesktop.ServiceTrust.ProfilePath;
-            return Path.Combine(AppContext.BaseDirectory, MouseWithoutBorders.Core.PortableApplication.SettingsFileName);
+            return MouseWithoutBorders.Core.PortableApplication.CurrentSettingsPath;
 #else
             var root = Utilities.Helper.UserLocalAppDataPath;
             if (string.IsNullOrWhiteSpace(root))
