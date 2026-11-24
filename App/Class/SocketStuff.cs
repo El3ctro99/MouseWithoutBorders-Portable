@@ -572,7 +572,6 @@ namespace MouseWithoutBorders.Class
 
         internal static DATA TcpReceiveData(TcpSk tcp, out int bytesReceived)
         {
-            byte[] buf = new byte[Package.PACKAGE_SIZE_EX];
             Stream decryptedStream = tcp.DecryptedStream;
 
             if (tcp.BackingSocket == null || !tcp.BackingSocket.Connected || decryptedStream == null)
@@ -582,36 +581,9 @@ namespace MouseWithoutBorders.Class
                 throw new ExpectedSocketException(log);
             }
 
-            DATA package;
-
             try
             {
-                bytesReceived = decryptedStream.ReadEx(buf, 0, Package.PACKAGE_SIZE);
-
-                if (bytesReceived != Package.PACKAGE_SIZE)
-                {
-                    buf[0] = bytesReceived == 0 ? (byte)PackageType.Error : (byte)PackageType.Invalid;
-                }
-                else
-                {
-                    ProcessReceivedDataEx(buf);
-                }
-
-                package = new DATA(buf);
-
-                if (package.IsBigPackage)
-                {
-                    bytesReceived = decryptedStream.ReadEx(buf, Package.PACKAGE_SIZE, Package.PACKAGE_SIZE);
-
-                    if (bytesReceived != Package.PACKAGE_SIZE)
-                    {
-                        buf[0] = bytesReceived == 0 ? (byte)PackageType.Error : (byte)PackageType.Invalid;
-                    }
-                    else
-                    {
-                        package.Bytes = buf;
-                    }
-                }
+                return ReadMessagePacket(decryptedStream, out bytesReceived);
             }
             catch (IOException e)
             {
@@ -621,6 +593,39 @@ namespace MouseWithoutBorders.Class
                 throw e.InnerException is SocketException se ? new ExpectedSocketException(se) : new ExpectedSocketException(log);
             }
 
+        }
+
+        internal static DATA ReadMessagePacket(Stream decryptedStream, out int bytesReceived)
+        {
+            ArgumentNullException.ThrowIfNull(decryptedStream);
+            byte[] buf = new byte[Package.PACKAGE_SIZE_EX];
+            DATA package;
+            bytesReceived = decryptedStream.ReadEx(buf, 0, Package.PACKAGE_SIZE);
+
+            if (bytesReceived != Package.PACKAGE_SIZE)
+            {
+                buf[0] = bytesReceived == 0 ? (byte)PackageType.Error : (byte)PackageType.Invalid;
+            }
+            else
+            {
+                ProcessReceivedDataEx(buf);
+            }
+
+            package = new DATA(buf);
+
+            if (package.IsBigPackage)
+            {
+                bytesReceived = decryptedStream.ReadEx(buf, Package.PACKAGE_SIZE, Package.PACKAGE_SIZE);
+
+                if (bytesReceived != Package.PACKAGE_SIZE)
+                {
+                    package.Type = bytesReceived == 0 ? PackageType.Error : PackageType.Invalid;
+                }
+                else
+                {
+                    package.Bytes = buf;
+                }
+            }
             return package;
         }
 

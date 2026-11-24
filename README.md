@@ -4,7 +4,13 @@
 
 <h1 align="center">Mouse Without Borders — Portable</h1>
 
-> **1.2.0-preview.10:** Removes startup mouse probing that could block initialization
+> **1.2.0-preview.13 candidate:** Restores bitmap capture from the Windows
+> clipboard. Preview 12 retries deferred capture and tracks successful remote
+> writes by sequence. See [capture recovery](docs/CLIPBOARD_CAPTURE_RECOVERY.md).
+> Preview 11 orders clipboard batches and fixes interrupted
+> reception during input traffic. Two-PC validation is pending; see
+> [clipboard stream recovery and test limits](docs/CLIPBOARD_STREAM_RECOVERY.md).
+> Preview 10 removes startup mouse probing that could block initialization
 > and falls back to native input after an optional WinRT mouse-injection COM fault.
 > See [freeze recovery and validation](docs/INPUT_INJECTION_RECOVERY.md).
 > Preview 9's optional approved administrator launch can use a protected

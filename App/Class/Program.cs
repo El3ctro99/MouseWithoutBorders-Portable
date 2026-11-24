@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+﻿// Copyright (c) Microsoft Corporation
 // The Microsoft Corporation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -340,10 +340,15 @@ namespace MouseWithoutBorders.Class
             void ConnectToMachine(string machineName, string securityKey);
 
             Task<MachineSocketState[]> RequestMachineSocketStateAsync();
+
+            Task<Dictionary<string, long>> RequestClipboardDiagnosticsAsync();
         }
 
         private sealed class SettingsSyncHelper : ISettingsSyncHelper
         {
+            public Task<Dictionary<string, long>> RequestClipboardDiagnosticsAsync() =>
+                Task.FromResult(ClipboardDiagnostics.Snapshot());
+
             public Task<ISettingsSyncHelper.MachineSocketState[]> RequestMachineSocketStateAsync()
             {
                 var machineStates = new Dictionary<string, SocketStatus>();
